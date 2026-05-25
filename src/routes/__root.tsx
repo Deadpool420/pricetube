@@ -77,13 +77,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "A liquid glass price tracker. Save products from any site and watch their prices in one calm, clean place.",
       },
-      { property: "og:title", content: "Frost — Liquid glass price tracker" },
+      { property: "og:title", content: "Frost — Track product prices across every store" },
       {
         property: "og:description",
         content: "Track product prices across every store with a clean, iOS-inspired interface.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Frost — Track product prices across every store" },
+      { name: "description", content: "Price Scout tracks product prices across multiple online retailers, helping users find the best deals." },
+      { property: "og:description", content: "Price Scout tracks product prices across multiple online retailers, helping users find the best deals." },
+      { name: "twitter:description", content: "Price Scout tracks product prices across multiple online retailers, helping users find the best deals." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/348d9623-b6dc-4070-829f-dd69388ee301/id-preview-fe66a713--42528b86-b1f2-4ede-85f0-4e48c76bd72a.lovable.app-1779695822113.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/348d9623-b6dc-4070-829f-dd69388ee301/id-preview-fe66a713--42528b86-b1f2-4ede-85f0-4e48c76bd72a.lovable.app-1779695822113.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
