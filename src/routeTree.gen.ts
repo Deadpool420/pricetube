@@ -13,7 +13,9 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppWishlistRouteImport } from './routes/app.wishlist'
 import { Route as AppAddRouteImport } from './routes/app.add'
+import { Route as AppProductProductIdRouteImport } from './routes/app.product.$productId'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -35,9 +37,19 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppWishlistRoute = AppWishlistRouteImport.update({
+  id: '/wishlist',
+  path: '/wishlist',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAddRoute = AppAddRouteImport.update({
   id: '/add',
   path: '/add',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProductProductIdRoute = AppProductProductIdRouteImport.update({
+  id: '/product/$productId',
+  path: '/product/$productId',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -46,13 +58,17 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/app/add': typeof AppAddRoute
+  '/app/wishlist': typeof AppWishlistRoute
   '/app/': typeof AppIndexRoute
+  '/app/product/$productId': typeof AppProductProductIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/app/add': typeof AppAddRoute
+  '/app/wishlist': typeof AppWishlistRoute
   '/app': typeof AppIndexRoute
+  '/app/product/$productId': typeof AppProductProductIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -60,14 +76,37 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/app/add': typeof AppAddRoute
+  '/app/wishlist': typeof AppWishlistRoute
   '/app/': typeof AppIndexRoute
+  '/app/product/$productId': typeof AppProductProductIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/login' | '/app/add' | '/app/'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/login'
+    | '/app/add'
+    | '/app/wishlist'
+    | '/app/'
+    | '/app/product/$productId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/app/add' | '/app'
-  id: '__root__' | '/' | '/app' | '/login' | '/app/add' | '/app/'
+  to:
+    | '/'
+    | '/login'
+    | '/app/add'
+    | '/app/wishlist'
+    | '/app'
+    | '/app/product/$productId'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/login'
+    | '/app/add'
+    | '/app/wishlist'
+    | '/app/'
+    | '/app/product/$productId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/wishlist': {
+      id: '/app/wishlist'
+      path: '/wishlist'
+      fullPath: '/app/wishlist'
+      preLoaderRoute: typeof AppWishlistRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/add': {
       id: '/app/add'
       path: '/add'
@@ -113,17 +159,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAddRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/product/$productId': {
+      id: '/app/product/$productId'
+      path: '/product/$productId'
+      fullPath: '/app/product/$productId'
+      preLoaderRoute: typeof AppProductProductIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppAddRoute: typeof AppAddRoute
+  AppWishlistRoute: typeof AppWishlistRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppProductProductIdRoute: typeof AppProductProductIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAddRoute: AppAddRoute,
+  AppWishlistRoute: AppWishlistRoute,
   AppIndexRoute: AppIndexRoute,
+  AppProductProductIdRoute: AppProductProductIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
