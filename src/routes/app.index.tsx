@@ -139,12 +139,15 @@ function EmptyState() {
 }
 
 export function formatPrice(value: number, currency: string) {
+  const rounded = Math.round(value);
   try {
     return new Intl.NumberFormat(undefined, {
       style: "currency",
       currency: (currency || "USD").toUpperCase(),
-    }).format(value);
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+    }).format(rounded);
   } catch {
-    return `${value.toFixed(2)} ${currency}`;
+    return `${rounded} ${currency}`;
   }
 }
