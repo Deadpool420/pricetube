@@ -7,6 +7,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  * Returns title, price (number), currency, and image URL.
  */
 export const scrapeProductFromUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     z
       .object({
