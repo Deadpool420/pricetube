@@ -167,7 +167,7 @@ function ProductDetail() {
                   </div>
                 </div>
                 <a
-                  href={s.url}
+                  href={/^https?:\/\//i.test(s.url) ? s.url : "#"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-3 py-1.5 text-xs font-medium text-primary-foreground"

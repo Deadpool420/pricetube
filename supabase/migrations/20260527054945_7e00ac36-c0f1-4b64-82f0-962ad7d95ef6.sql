@@ -1,0 +1,1 @@
+ALTER TABLE public.product_sources ADD CONSTRAINT url_scheme_check CHECK (url ~* '^https?://');

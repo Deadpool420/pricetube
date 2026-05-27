@@ -11,7 +11,12 @@ export const scrapeProductFromUrl = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z
       .object({
-        url: z.string().url(),
+        url: z
+          .string()
+          .url()
+          .refine((u) => /^https?:\/\//i.test(u), {
+            message: "Only http/https URLs are allowed",
+          }),
       })
       .parse(input),
   )
