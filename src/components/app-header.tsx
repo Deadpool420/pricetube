@@ -13,7 +13,7 @@ export function AppHeader() {
           <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-[var(--accent)] to-[var(--primary)] text-primary-foreground shadow-md">
             <Droplets className="h-4 w-4" />
           </span>
-          <span className="text-gradient">Frost</span>
+          <span className="text-gradient">Price Tube</span>
         </Link>
 
         <nav className="hidden items-center gap-1 sm:flex">
