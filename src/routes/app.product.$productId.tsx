@@ -136,12 +136,14 @@ function ProductDetail() {
       <div className="glass-strong rounded-3xl p-6 md:p-8">
         <div className="flex items-start gap-5">
           {data.product.image_url && (
-            <img src={data.product.image_url} alt="" className="h-24 w-24 rounded-2xl object-cover shadow-md" />
+            <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/70 p-2 shadow-md">
+              <img src={data.product.image_url} alt="" className="h-full w-full object-contain" />
+            </div>
           )}
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <h1 className="font-display text-2xl font-bold tracking-tight">{data.product.name}</h1>
-            <div className="mt-3 flex items-baseline gap-2">
-              <div className="font-display text-4xl font-bold text-gradient">
+            <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <div className="font-display text-3xl font-bold text-gradient break-all md:text-4xl">
                 {lowest !== null ? formatPrice(lowest, currency) : "—"}
               </div>
               <div className="text-xs text-muted-foreground">lowest right now</div>

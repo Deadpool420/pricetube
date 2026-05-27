@@ -84,9 +84,9 @@ function ProductCard({ product }: { product: DashboardProduct }) {
       className="glass glass-hover block rounded-3xl p-5"
     >
       <div className="flex items-start gap-4">
-        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-white/40">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/60 p-1.5">
           {product.image_url ? (
-            <img src={product.image_url} alt="" className="h-full w-full object-cover" />
+            <img src={product.image_url} alt="" className="h-full w-full object-contain" />
           ) : (
             <div className="grid h-full w-full place-items-center text-muted-foreground">
               <Package className="h-6 w-6" />
@@ -139,12 +139,15 @@ function EmptyState() {
 }
 
 export function formatPrice(value: number, currency: string) {
+  const rounded = Math.round(value);
   try {
     return new Intl.NumberFormat(undefined, {
       style: "currency",
       currency: (currency || "USD").toUpperCase(),
-    }).format(value);
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+    }).format(rounded);
   } catch {
-    return `${value.toFixed(2)} ${currency}`;
+    return `${rounded} ${currency}`;
   }
 }
