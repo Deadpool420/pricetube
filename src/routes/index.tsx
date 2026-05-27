@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, BarChart3, Heart, Layers, Sparkles, TrendingDown } from "lucide-react";
+import { ArrowRight, Search, LineChart, Bell, Check } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 
 export const Route = createFileRoute("/")({
@@ -11,91 +11,114 @@ function Landing() {
     <div className="min-h-screen">
       <AppHeader />
 
-      <main className="mx-auto max-w-6xl px-4 pb-24">
+      <main className="mx-auto max-w-5xl px-4 pb-24">
         {/* Hero */}
-        <section className="pt-16 pb-20 md:pt-24 md:pb-28 text-center">
-          <div className="glass-inset mx-auto mb-6 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium text-[var(--deep)]">
-            <Sparkles className="h-3.5 w-3.5" />
-            Liquid glass price tracking
+        <section className="pt-20 pb-16 md:pt-28 md:pb-20">
+          <div className="mx-auto max-w-3xl text-center">
+            <h1 className="font-display text-5xl font-bold tracking-tight md:text-6xl">
+              <span className="text-foreground/80">Type the product.</span>
+              <br />
+              <span className="text-gradient">We find every price.</span>
+            </h1>
+            <p className="mx-auto mt-6 max-w-xl text-base text-muted-foreground md:text-lg">
+              Search like Google. Frost discovers every store selling it, lines up the prices
+              side by side, and quietly watches them drop.
+            </p>
+            <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                to="/login"
+                className="group flex items-center gap-2 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-[var(--primary)]/20 transition hover:-translate-y-0.5 hover:shadow-xl"
+              >
+                Start tracking free
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+              <span className="text-xs text-muted-foreground">No credit card · 30 seconds</span>
+            </div>
           </div>
-          <h1 className="font-display text-5xl font-bold tracking-tight md:text-7xl">
-            <span className="text-gradient">Watch every price.</span>
-            <br />
-            <span className="text-foreground/80">Across every store.</span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-xl text-base text-muted-foreground md:text-lg">
-            Paste a product link from any site. Frost scrapes the price, compares it across sources,
-            and quietly tracks every change over time.
-          </p>
-          <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              to="/login"
-              className="group flex items-center gap-2 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-[var(--primary)]/20 transition hover:shadow-xl hover:-translate-y-0.5"
-            >
-              Start tracking free
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-          </div>
-        </section>
 
-        {/* Floating preview */}
-        <section className="relative mx-auto max-w-4xl">
-          <div className="glass-strong rounded-3xl p-6 md:p-8">
-            <div className="grid gap-4 md:grid-cols-3">
-              {[
-                { site: "Amazon", price: "$249.00", trend: "−12%", down: true },
-                { site: "Best Buy", price: "$269.99", trend: "+2%", down: false },
-                { site: "Walmart", price: "$239.50", trend: "−8%", down: true },
-              ].map((s) => (
-                <div
-                  key={s.site}
-                  className="glass-inset rounded-2xl p-5"
-                >
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">{s.site}</div>
-                  <div className="mt-2 flex items-baseline justify-between">
-                    <div className="font-display text-2xl font-bold">{s.price}</div>
-                    <div
-                      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                        s.down ? "bg-[oklch(0.9_0.1_160/0.5)] text-[oklch(0.4_0.13_160)]" : "bg-white/60 text-muted-foreground"
-                      }`}
-                    >
-                      <TrendingDown className="h-3 w-3" />
-                      {s.trend}
-                    </div>
-                  </div>
-                </div>
-              ))}
+          {/* Search-bar mockup, not fake data */}
+          <div className="mx-auto mt-14 max-w-2xl">
+            <div className="glass-strong rounded-3xl p-3">
+              <div className="flex items-center gap-3 rounded-2xl glass-inset px-4 py-3.5">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-foreground/80">CMF Phone 2 Pro</span>
+                <span className="ml-1 inline-block h-4 w-px animate-pulse bg-foreground/40" />
+                <span className="ml-auto rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-3 py-1 text-xs font-semibold text-primary-foreground">
+                  Search
+                </span>
+              </div>
+              <div className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                Frost looks across Amazon, Best Buy, eBay, Walmart, Target and more
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Features */}
-        <section className="mt-24 grid gap-5 md:grid-cols-3">
+        {/* How it works — three numbered steps */}
+        <section className="grid gap-5 md:grid-cols-3">
           {[
             {
-              icon: Layers,
-              title: "Multi-source",
-              body: "Add Amazon, eBay, Walmart and more for the same product. See them side by side.",
+              n: "01",
+              icon: Search,
+              title: "Search by name",
+              body:
+                "Type any product. Frost scans the major retailers and shows the offers in one list.",
             },
             {
-              icon: BarChart3,
-              title: "Price history",
-              body: "Every refresh adds a data point. Watch prices fall (or climb) over time.",
+              n: "02",
+              icon: Check,
+              title: "Pick what to track",
+              body:
+                "Tick the stores you actually care about. We save them as one product with multiple sources.",
             },
             {
-              icon: Heart,
-              title: "Wishlist",
-              body: "Save the products that matter. Open them in one tap when you're ready to buy.",
+              n: "03",
+              icon: LineChart,
+              title: "Watch the history",
+              body:
+                "Every refresh adds a point. See which store keeps dropping and which one is gouging.",
             },
-          ].map((f) => (
-            <div key={f.title} className="glass glass-hover rounded-3xl p-6">
-              <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--primary)] text-primary-foreground shadow-md">
-                <f.icon className="h-5 w-5" />
+          ].map((s) => (
+            <div key={s.n} className="glass glass-hover rounded-3xl p-6">
+              <div className="flex items-center justify-between">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--primary)] text-primary-foreground shadow-md">
+                  <s.icon className="h-5 w-5" />
+                </div>
+                <span className="font-display text-xs font-semibold text-muted-foreground">
+                  {s.n}
+                </span>
               </div>
-              <h3 className="mt-4 font-display text-lg font-semibold">{f.title}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{f.body}</p>
+              <h3 className="mt-4 font-display text-lg font-semibold">{s.title}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{s.body}</p>
             </div>
           ))}
+        </section>
+
+        {/* Honest "what this is" block */}
+        <section className="mt-20">
+          <div className="glass-strong rounded-3xl p-8 md:p-10">
+            <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
+              <div>
+                <div className="glass-inset inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium text-[var(--deep)]">
+                  <Bell className="h-3.5 w-3.5" /> Built for one thing
+                </div>
+                <h2 className="mt-4 font-display text-3xl font-bold tracking-tight">
+                  No tabs. No screenshots. No "wait, was it cheaper last week?"
+                </h2>
+                <p className="mt-3 max-w-xl text-sm text-muted-foreground md:text-base">
+                  Frost is a single page where every product you care about sits with its current
+                  prices and its history. Search, save, hit refresh, decide. That's it.
+                </p>
+              </div>
+              <Link
+                to="/login"
+                className="group inline-flex items-center justify-center gap-2 self-start rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-[var(--primary)]/20 transition hover:-translate-y-0.5 hover:shadow-xl md:self-auto"
+              >
+                Try it now
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            </div>
+          </div>
         </section>
       </main>
     </div>
