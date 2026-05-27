@@ -21,7 +21,7 @@ function Landing() {
               <span className="text-gradient">We find every price.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-base text-muted-foreground md:text-lg">
-              Search like Google. Frost discovers every store selling it, lines up the prices
+              Search like Google. Price Tube discovers every store selling it, lines up the prices
               side by side, and quietly watches them drop.
             </p>
             <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
@@ -48,7 +48,7 @@ function Landing() {
                 </span>
               </div>
               <div className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                Frost looks across Amazon, Best Buy, eBay, Walmart, Target and more
+                Price Tube looks across Amazon, Best Buy, eBay, Walmart, Target and more
               </div>
             </div>
           </div>
@@ -62,7 +62,7 @@ function Landing() {
               icon: Search,
               title: "Search by name",
               body:
-                "Type any product. Frost scans the major retailers and shows the offers in one list.",
+                "Type any product. Price Tube scans the major retailers and shows the offers in one list.",
             },
             {
               n: "02",
@@ -106,7 +106,7 @@ function Landing() {
                   No tabs. No screenshots. No "wait, was it cheaper last week?"
                 </h2>
                 <p className="mt-3 max-w-xl text-sm text-muted-foreground md:text-base">
-                  Frost is a single page where every product you care about sits with its current
+                  Price Tube is a single page where every product you care about sits with its current
                   prices and its history. Search, save, hit refresh, decide. That's it.
                 </p>
               </div>
