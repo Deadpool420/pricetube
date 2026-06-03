@@ -7,6 +7,15 @@ import { formatPrice } from "./app.index";
 
 export const Route = createFileRoute("/app/wishlist")({
   component: Wishlist,
+  head: () => ({
+    meta: [
+      { title: "Wishlist — Price Tube" },
+      { name: "description", content: "Products you've starred and want to keep an eye on." },
+      { property: "og:title", content: "Wishlist — Price Tube" },
+      { property: "og:description", content: "Products you've starred and want to keep an eye on." },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
 });
 
 function Wishlist() {
@@ -68,7 +77,7 @@ function Wishlist() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="line-clamp-2 font-display text-sm font-semibold leading-tight">{p.name}</h3>
+                      <h2 className="line-clamp-2 font-display text-sm font-semibold leading-tight">{p.name}</h2>
                       <div className="mt-2 font-display text-xl font-bold text-gradient">
                         {lowest !== null ? formatPrice(lowest, currency) : "—"}
                       </div>

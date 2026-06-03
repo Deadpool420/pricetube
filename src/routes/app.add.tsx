@@ -20,6 +20,15 @@ import { formatPrice } from "@/routes/app.index";
 
 export const Route = createFileRoute("/app/add")({
   component: AddProduct,
+  head: () => ({
+    meta: [
+      { title: "Track a new product — Price Tube" },
+      { name: "description", content: "Search by name or paste links to start tracking a new product." },
+      { property: "og:title", content: "Track a new product — Price Tube" },
+      { property: "og:description", content: "Search by name or paste links to start tracking a new product." },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
 });
 
 type Offer = {
@@ -249,6 +258,7 @@ function AddProduct() {
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
+                  aria-label="Search products"
                   placeholder="e.g. CMF Phone 2 Pro"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -354,10 +364,11 @@ function AddProduct() {
         ) : (
           <form onSubmit={saveFromUrls} className="mt-6 space-y-5">
             <div>
-              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <label htmlFor="custom-name" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Custom name (optional)
               </label>
               <input
+                id="custom-name"
                 type="text"
                 placeholder="e.g. AirPods Pro 2"
                 value={name}
@@ -367,7 +378,7 @@ function AddProduct() {
             </div>
 
             <div>
-              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <label htmlFor="product-url-0" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Product URLs
               </label>
               <div className="mt-1.5 space-y-2">
@@ -376,7 +387,9 @@ function AddProduct() {
                     <div className="relative flex-1">
                       <LinkIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <input
+                        id={`product-url-${i}`}
                         type="url"
+                        aria-label={`Product URL ${i + 1}`}
                         placeholder="https://www.amazon.com/..."
                         value={u}
                         onChange={(e) =>
@@ -388,6 +401,7 @@ function AddProduct() {
                     {urls.length > 1 && (
                       <button
                         type="button"
+                        aria-label="Remove source"
                         onClick={() => setUrls((arr) => arr.filter((_, idx) => idx !== i))}
                         className="grid h-10 w-10 place-items-center rounded-2xl glass-inset text-muted-foreground hover:text-destructive"
                       >

@@ -4,6 +4,24 @@ import { AppHeader } from "@/components/app-header";
 
 export const Route = createFileRoute("/")({
   component: Landing,
+  head: () => ({
+    meta: [
+      { title: "Price Tube — Track product prices across every store" },
+      {
+        name: "description",
+        content:
+          "Search any product by name. Price Tube finds every retailer selling it, compares prices, and quietly tracks the history for you.",
+      },
+      { property: "og:title", content: "Price Tube — Track product prices across every store" },
+      {
+        property: "og:description",
+        content:
+          "Search any product by name. Price Tube finds every retailer, compares prices, and tracks the history.",
+      },
+      { property: "og:url", content: "https://pricetube.lovable.app/" },
+    ],
+    links: [{ rel: "canonical", href: "https://pricetube.lovable.app/" }],
+  }),
 });
 
 function Landing() {
@@ -88,7 +106,7 @@ function Landing() {
                   {s.n}
                 </span>
               </div>
-              <h3 className="mt-4 font-display text-lg font-semibold">{s.title}</h3>
+              <h2 className="mt-4 font-display text-lg font-semibold">{s.title}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{s.body}</p>
             </div>
           ))}

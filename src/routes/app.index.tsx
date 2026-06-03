@@ -6,6 +6,15 @@ import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/app/")({
   component: Dashboard,
+  head: () => ({
+    meta: [
+      { title: "Your tracker — Price Tube" },
+      { name: "description", content: "All the products you're watching and their lowest live prices in one place." },
+      { property: "og:title", content: "Your tracker — Price Tube" },
+      { property: "og:description", content: "All the products you're watching and their lowest live prices in one place." },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
 });
 
 type DashboardProduct = {
@@ -94,7 +103,7 @@ function ProductCard({ product }: { product: DashboardProduct }) {
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="line-clamp-2 font-display text-sm font-semibold leading-tight">{product.name}</h3>
+          <h2 className="line-clamp-2 font-display text-sm font-semibold leading-tight">{product.name}</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             {product.product_sources.length} {product.product_sources.length === 1 ? "source" : "sources"}
           </p>

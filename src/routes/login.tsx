@@ -8,6 +8,16 @@ import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
+  head: () => ({
+    meta: [
+      { title: "Sign in — Price Tube" },
+      { name: "description", content: "Sign in or create a free Price Tube account to start tracking product prices." },
+      { property: "og:title", content: "Sign in — Price Tube" },
+      { property: "og:description", content: "Sign in or create a free Price Tube account to start tracking product prices." },
+      { property: "og:url", content: "https://pricetube.lovable.app/login" },
+    ],
+    links: [{ rel: "canonical", href: "https://pricetube.lovable.app/login" }],
+  }),
 });
 
 function LoginPage() {
@@ -105,6 +115,7 @@ function LoginPage() {
           <input
             type="email"
             required
+            aria-label="Email address"
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -114,6 +125,7 @@ function LoginPage() {
             type="password"
             required
             minLength={6}
+            aria-label="Password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
