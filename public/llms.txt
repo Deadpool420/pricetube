@@ -1,0 +1,8 @@
+# Price Tube
+
+> Price Tube tracks product prices across major online retailers in one calm dashboard. Search by name, pick the stores you care about, and watch the price history.
+
+## Pages
+
+- [Home](/): What Price Tube is and how it works.
+- [Sign in](/login): Create an account or sign in to start tracking.
