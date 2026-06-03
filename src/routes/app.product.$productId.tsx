@@ -12,6 +12,15 @@ import { formatPrice } from "./app.index";
 
 export const Route = createFileRoute("/app/product/$productId")({
   component: ProductDetail,
+  head: () => ({
+    meta: [
+      { title: "Product detail — Price Tube" },
+      { name: "description", content: "Compare prices and watch the history for a tracked product across stores." },
+      { property: "og:title", content: "Product detail — Price Tube" },
+      { property: "og:description", content: "Compare prices and watch the history for a tracked product across stores." },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
 });
 
 function ProductDetail() {
