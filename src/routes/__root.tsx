@@ -80,6 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:site_name", content: "Price Tube" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "google-site-verification", content: "kCXwOGliLPHsT0QieLQ-nxh8xnybFZUW1gV37_OO4lo" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
