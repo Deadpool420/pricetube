@@ -17,7 +17,14 @@ export function AppHeader() {
         </Link>
 
         <nav className="hidden items-center gap-1 sm:flex">
-          {user ? (
+          <Link
+            to="/search"
+            className="rounded-full px-4 py-1.5 text-sm text-muted-foreground hover:bg-white/40 hover:text-foreground transition"
+            activeProps={{ className: "rounded-full px-4 py-1.5 text-sm bg-white/60 text-foreground" }}
+          >
+            Search
+          </Link>
+          {user && (
             <>
               <Link
                 to="/app"
@@ -34,13 +41,6 @@ export function AppHeader() {
                 Wishlist
               </Link>
             </>
-          ) : (
-            <Link
-              to="/"
-              className="rounded-full px-4 py-1.5 text-sm text-muted-foreground hover:bg-white/40 hover:text-foreground transition"
-            >
-              Home
-            </Link>
           )}
         </nav>
 

@@ -1,13 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /**
  * Search for a product across major retailers using Firecrawl search.
- * Returns up to 8 candidate offers with title, price, currency, image and url.
+ * Public — no auth required. Returns up to 8 candidate offers.
  */
 export const searchProductOffers = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     z
       .object({
