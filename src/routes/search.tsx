@@ -338,14 +338,12 @@ function SearchPage() {
               Sign up in 30 seconds to track {selected.size === 1 ? "this offer" : `these ${selected.size} offers`} and watch the price history. No credit card.
             </p>
             <div className="mt-5 flex flex-col gap-2">
-              <Link
-                to="/login"
-                search={{ redirect: `/search?q=${encodeURIComponent(query.trim())}` } as never}
+              <a
                 href={loginHref}
                 className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-4 py-3 text-sm font-semibold text-primary-foreground shadow-md transition hover:shadow-lg"
               >
                 Sign in / Sign up
-              </Link>
+              </a>
               <button
                 onClick={() => setShowLoginPrompt(false)}
                 className="rounded-2xl glass-inset px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
