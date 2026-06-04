@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { ArrowRight, Search, LineChart, Bell, Check } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 
@@ -25,6 +26,19 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const navigate = useNavigate();
+  const [q, setQ] = useState("");
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const term = q.trim();
+    if (term.length < 2) {
+      navigate({ to: "/search" });
+      return;
+    }
+    navigate({ to: "/search", search: { q: term } });
+  };
+
   return (
     <div className="min-h-screen">
       <AppHeader />
@@ -44,32 +58,41 @@ function Landing() {
             </p>
             <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
               <Link
-                to="/login"
+                to="/search"
                 className="group flex items-center gap-2 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-[var(--primary)]/20 transition hover:-translate-y-0.5 hover:shadow-xl"
               >
-                Start tracking free
+                Search prices free
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
-              <span className="text-xs text-muted-foreground">No credit card · 30 seconds</span>
+              <span className="text-xs text-muted-foreground">No sign-up to browse</span>
             </div>
           </div>
 
-          {/* Search-bar mockup, not fake data */}
-          <div className="mx-auto mt-14 max-w-2xl">
+          {/* Real search bar — submits to /search */}
+          <form onSubmit={submit} className="mx-auto mt-14 max-w-2xl">
             <div className="glass-strong rounded-3xl p-3">
               <div className="flex items-center gap-3 rounded-2xl glass-inset px-4 py-3.5">
                 <Search className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-foreground/80">CMF Phone 2 Pro</span>
-                <span className="ml-1 inline-block h-4 w-px animate-pulse bg-foreground/40" />
-                <span className="ml-auto rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-3 py-1 text-xs font-semibold text-primary-foreground">
+                <input
+                  type="text"
+                  aria-label="Search any product"
+                  placeholder="e.g. CMF Phone 2 Pro"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                />
+                <button
+                  type="submit"
+                  className="ml-1 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-3 py-1 text-xs font-semibold text-primary-foreground"
+                >
                   Search
-                </span>
+                </button>
               </div>
               <div className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
                 Price Tube looks across Amazon, Best Buy, eBay, Walmart, Target and more
               </div>
             </div>
-          </div>
+          </form>
         </section>
 
         {/* How it works — three numbered steps */}
@@ -129,7 +152,7 @@ function Landing() {
                 </p>
               </div>
               <Link
-                to="/login"
+                to="/search"
                 className="group inline-flex items-center justify-center gap-2 self-start rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-[var(--primary)]/20 transition hover:-translate-y-0.5 hover:shadow-xl md:self-auto"
               >
                 Try it now
