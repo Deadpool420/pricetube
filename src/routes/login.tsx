@@ -26,16 +26,26 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const { redirect } = Route.useSearch();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!loading && user) {
+  const goNext = () => {
+    if (redirect && redirect.startsWith("/")) {
+      window.location.assign(redirect);
+    } else {
       navigate({ to: "/app" });
     }
-  }, [user, loading, navigate]);
+  };
+
+  useEffect(() => {
+    if (!loading && user) {
+      goNext();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,14 +55,14 @@ function LoginPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin + "/app" },
+          options: { emailRedirectTo: window.location.origin + (redirect ?? "/app") },
         });
         if (error) throw error;
         toast.success("Check your email to confirm your account");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: "/app" });
+        goNext();
       }
     } catch (err: any) {
       toast.error(err?.message ?? "Authentication failed");
@@ -65,7 +75,7 @@ function LoginPage() {
     setSubmitting(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin + "/app",
+        redirect_uri: window.location.origin + (redirect ?? "/app"),
       });
       if (result.error) {
         toast.error(result.error.message ?? "Google sign-in failed");
@@ -73,7 +83,7 @@ function LoginPage() {
         return;
       }
       if (result.redirected) return;
-      navigate({ to: "/app" });
+      goNext();
     } catch (err: any) {
       toast.error(err?.message ?? "Google sign-in failed");
       setSubmitting(false);
