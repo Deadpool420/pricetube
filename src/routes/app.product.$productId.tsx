@@ -211,37 +211,91 @@ function ProductDetail() {
           <div className="glass rounded-3xl p-5">
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid stroke="oklch(0.85 0.03 230 / 0.4)" vertical={false} />
-                  <XAxis dataKey="label" stroke="oklch(0.5 0.03 240)" fontSize={11} />
-                  <YAxis stroke="oklch(0.5 0.03 240)" fontSize={11} />
+                <AreaChart data={chartData} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+                  <defs>
+                    {data.sources.map((s, i) => (
+                      <linearGradient key={s.id} id={`pt-grad-${s.id}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={`var(--chart-${(i % 5) + 1})`} stopOpacity={0.28} />
+                        <stop offset="100%" stopColor={`var(--chart-${(i % 5) + 1})`} stopOpacity={0} />
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  <CartesianGrid stroke="oklch(0.9 0.02 230 / 0.5)" vertical={false} strokeDasharray="3 6" />
+                  <XAxis
+                    dataKey="label"
+                    stroke="oklch(0.6 0.02 240)"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    minTickGap={24}
+                  />
+                  <YAxis
+                    stroke="oklch(0.6 0.02 240)"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    width={44}
+                    tickFormatter={(v) => formatPrice(Number(v), currency)}
+                    domain={["auto", "auto"]}
+                  />
                   <Tooltip
+                    cursor={{ stroke: "oklch(0.7 0.02 240)", strokeWidth: 1, strokeDasharray: "3 3" }}
                     contentStyle={{
-                      background: "oklch(1 0 0 / 0.85)",
+                      background: "oklch(1 0 0 / 0.92)",
                       backdropFilter: "blur(20px)",
-                      border: "1px solid oklch(0.85 0.03 230 / 0.5)",
+                      border: "1px solid oklch(0.88 0.02 230 / 0.6)",
                       borderRadius: 12,
+                      fontSize: 12,
+                      boxShadow: "0 8px 24px -12px oklch(0 0 0 / 0.18)",
                     }}
+                    labelStyle={{ color: "oklch(0.45 0.03 240)", fontWeight: 500, marginBottom: 4 }}
+                    formatter={(value: number | string) =>
+                      typeof value === "number" ? formatPrice(value, currency) : value
+                    }
                   />
                   {data.sources.map((s, i) => (
-                    <Line
+                    <Area
                       key={s.id}
                       type="monotone"
                       dataKey={s.site_name}
                       stroke={`var(--chart-${(i % 5) + 1})`}
-                      strokeWidth={2.5}
-                      dot={{ r: 3 }}
+                      strokeWidth={2}
+                      fill={`url(#pt-grad-${s.id})`}
+                      activeDot={{ r: 4, strokeWidth: 2, stroke: "oklch(1 0 0)" }}
+                      dot={false}
+                      connectNulls
                     />
                   ))}
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
         </>
       )}
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent className="glass-strong rounded-3xl border-white/40">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display">Delete this product?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the product and all of its price history. You can't undo this.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteProduct}
+              className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
+
 
 function buildChartData(history: any[], sources: any[]) {
   const byDate = new Map<string, Record<string, any>>();
