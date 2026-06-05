@@ -102,11 +102,12 @@ function ProductDetail() {
   };
 
   const deleteProduct = async () => {
-    if (!confirm("Delete this product and all its price history?")) return;
     await supabase.from("products").delete().eq("id", productId);
     toast.success("Product deleted");
+    setConfirmDelete(false);
     navigate({ to: "/app" });
   };
+
 
   if (isLoading || !data?.product) {
     return (
