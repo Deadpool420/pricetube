@@ -90,6 +90,18 @@ function ProductCard({ product }: { product: DashboardProduct }) {
   const lowestSource = product.product_sources.find((s) => s.current_price === lowest);
   const currency = lowestSource?.currency ?? "USD";
 
+  // Compute trend on the lowest source: compare its current_price to the prior history entry.
+  let trend: "down" | "up" | null = null;
+  if (lowestSource && typeof lowestSource.current_price === "number") {
+    const history = lowestSource.price_history ?? [];
+    // History is ordered desc by recorded_at; find the first entry whose price differs from current.
+    const prior = history.find((h) => Number(h.price) !== lowestSource.current_price);
+    if (prior) {
+      if (lowestSource.current_price < Number(prior.price)) trend = "down";
+      else if (lowestSource.current_price > Number(prior.price)) trend = "up";
+    }
+  }
+
   return (
     <Link
       to="/app/product/$productId"
@@ -115,11 +127,32 @@ function ProductCard({ product }: { product: DashboardProduct }) {
       </div>
       <div className="mt-4 flex items-end justify-between">
         <div>
-          <div className="text-xs uppercase tracking-wide text-muted-foreground">Lowest</div>
+          <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
+            Lowest
+            {trend === "down" && (
+              <span
+                className="inline-flex items-center gap-0.5 rounded-full bg-[oklch(0.9_0.1_160/0.5)] px-1.5 py-0.5 text-[10px] font-semibold normal-case text-[oklch(0.4_0.13_160)]"
+                aria-label="Price dropped"
+                title="Price dropped"
+              >
+                <ArrowDown className="h-3 w-3" />
+              </span>
+            )}
+            {trend === "up" && (
+              <span
+                className="inline-flex items-center gap-0.5 rounded-full bg-[oklch(0.92_0.08_25/0.55)] px-1.5 py-0.5 text-[10px] font-semibold normal-case text-[oklch(0.45_0.18_25)]"
+                aria-label="Price went up"
+                title="Price went up"
+              >
+                <ArrowUp className="h-3 w-3" />
+              </span>
+            )}
+          </div>
           <div className="font-display text-2xl font-bold text-gradient">
             {lowest !== null ? formatPrice(lowest, currency) : "—"}
           </div>
         </div>
+
         {lowestSource && (
           <div className="flex items-center gap-1 rounded-full bg-[oklch(0.9_0.1_160/0.5)] px-2 py-1 text-xs font-medium text-[oklch(0.4_0.13_160)]">
             <TrendingDown className="h-3 w-3" />
