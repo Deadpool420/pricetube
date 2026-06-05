@@ -32,6 +32,7 @@ export const Route = createFileRoute("/app/product/$productId")({
     ],
   }),
 });
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
 function ProductDetail() {
   const { productId } = Route.useParams();
