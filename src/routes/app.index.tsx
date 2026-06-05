@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Package, TrendingDown, Heart } from "lucide-react";
+import { Plus, Package, TrendingDown, Heart, ArrowDown, ArrowUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -27,6 +27,7 @@ type DashboardProduct = {
     site_name: string;
     current_price: number | null;
     currency: string | null;
+    price_history: { price: number; recorded_at: string }[];
   }[];
 };
 
@@ -39,8 +40,11 @@ function Dashboard() {
     queryFn: async (): Promise<DashboardProduct[]> => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, image_url, created_at, product_sources(id, site_name, current_price, currency)")
-        .order("created_at", { ascending: false });
+        .select(
+          "id, name, image_url, created_at, product_sources(id, site_name, current_price, currency, price_history(price, recorded_at))",
+        )
+        .order("created_at", { ascending: false })
+        .order("recorded_at", { foreignTable: "product_sources.price_history", ascending: false });
       if (error) throw error;
       return data as unknown as DashboardProduct[];
     },
