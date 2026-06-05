@@ -32,7 +32,6 @@ export const Route = createFileRoute("/app/product/$productId")({
     ],
   }),
 });
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
 function ProductDetail() {
   const { productId } = Route.useParams();
@@ -40,6 +39,9 @@ function ProductDetail() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const scrape = useServerFn(scrapeProductFromUrl);
+  const [refreshing, setRefreshing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   const [refreshing, setRefreshing] = useState(false);
 
   const { data, isLoading } = useQuery({
