@@ -147,7 +147,7 @@ function ProductDetail() {
             Refresh
           </button>
           <button
-            onClick={deleteProduct}
+            onClick={() => setConfirmDelete(true)}
             className="grid h-10 w-10 place-items-center rounded-full glass-inset text-muted-foreground hover:text-destructive transition"
             aria-label="Delete"
           >
