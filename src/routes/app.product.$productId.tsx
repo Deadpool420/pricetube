@@ -42,7 +42,7 @@ function ProductDetail() {
   const [refreshing, setRefreshing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const [refreshing, setRefreshing] = useState(false);
+
 
   const { data, isLoading } = useQuery({
     queryKey: ["product", productId],
