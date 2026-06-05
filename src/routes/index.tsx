@@ -20,6 +20,13 @@ export const Route = createFileRoute("/")({
           "Search any product by name. Price Tube finds every retailer, compares prices, and tracks the history.",
       },
       { property: "og:url", content: "https://pricetube.lovable.app/" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Price Tube — Track product prices across every store" },
+      {
+        name: "twitter:description",
+        content:
+          "Search any product by name. Price Tube finds every retailer, compares prices, and tracks the history.",
+      },
     ],
     links: [{ rel: "canonical", href: "https://pricetube.lovable.app/" }],
   }),
