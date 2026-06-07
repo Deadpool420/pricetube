@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, Search, LineChart, Bell, Check } from "lucide-react";
+import { ArrowRight, Search, LineChart, Bell, Check, TrendingDown } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 
 export const Route = createFileRoute("/")({
@@ -31,6 +31,12 @@ export const Route = createFileRoute("/")({
     links: [{ rel: "canonical", href: "https://pricetube.lovable.app/" }],
   }),
 });
+
+const EXAMPLES = [
+  { name: "iPhone 15 Pro 256GB", sources: 5, price: "$1,049", drop: "$50" },
+  { name: "Sony WH-1000XM5", sources: 4, price: "$329", drop: "$70" },
+  { name: "Nike Air Max 90", sources: 6, price: "$108", drop: "$22" },
+];
 
 function Landing() {
   const navigate = useNavigate();
@@ -100,7 +106,36 @@ function Landing() {
               </div>
             </div>
           </form>
+
+          {/* Example results preview */}
+          <div className="mx-auto mt-10 max-w-2xl">
+            <div className="mb-3 text-center text-[11px] uppercase tracking-wide text-muted-foreground">
+              Sneak peek — this is what your tracker looks like
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {EXAMPLES.map((ex) => (
+                <div key={ex.name} className="glass rounded-2xl p-4 text-left">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--primary)] text-primary-foreground shadow-sm">
+                    <TrendingDown className="h-4 w-4" />
+                  </div>
+                  <h3 className="mt-3 line-clamp-2 font-display text-sm font-semibold leading-tight">
+                    {ex.name}
+                  </h3>
+                  <div className="mt-1 text-[11px] text-muted-foreground">{ex.sources} sources</div>
+                  <div className="mt-2 font-display text-lg font-bold text-gradient">{ex.price}</div>
+                  <div className="mt-1 text-[10px] uppercase tracking-wide text-[oklch(0.4_0.13_160)]">
+                    ↓ {ex.drop} this week
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 text-center text-[10px] text-muted-foreground">
+              Example data — sign in to track your own products
+            </div>
+          </div>
         </section>
+
+
 
         {/* How it works — three numbered steps */}
         <section className="grid gap-5 md:grid-cols-3">
