@@ -32,6 +32,12 @@ export const Route = createFileRoute("/")({
   }),
 });
 
+const EXAMPLES = [
+  { name: "iPhone 15 Pro 256GB", sources: 5, price: "$1,049", drop: "$50" },
+  { name: "Sony WH-1000XM5", sources: 4, price: "$329", drop: "$70" },
+  { name: "Nike Air Max 90", sources: 6, price: "$108", drop: "$22" },
+];
+
 function Landing() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");

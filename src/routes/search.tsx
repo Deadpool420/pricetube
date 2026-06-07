@@ -178,14 +178,15 @@ function SearchPage() {
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <main className="mx-auto max-w-3xl px-4 py-10">
-        <div className="glass-strong rounded-3xl p-6 md:p-8">
-          <h1 className="font-display text-2xl font-bold tracking-tight md:text-3xl">
+      <main className="mx-auto max-w-3xl px-4 py-6 md:py-10">
+        <div className="glass-strong rounded-3xl p-4 sm:p-6 md:p-8">
+          <h1 className="font-display text-xl font-bold tracking-tight sm:text-2xl md:text-3xl">
             Search any product
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             We'll scan major retailers and line up the prices. No sign-up needed to look.
           </p>
+
 
           <form onSubmit={handleSearch} className="mt-6 flex gap-2">
             <div className="relative flex-1">
@@ -228,49 +229,51 @@ function SearchPage() {
                       type="button"
                       key={o.url}
                       onClick={() => toggle(o.url)}
-                      className={`flex items-start gap-4 rounded-2xl p-4 text-left transition ${
+                      className={`flex flex-col gap-3 rounded-2xl p-3 text-left transition sm:flex-row sm:items-start sm:gap-4 sm:p-4 ${
                         isSelected
                           ? "glass-strong ring-2 ring-[var(--primary)]"
                           : "glass glass-hover"
                       }`}
                     >
-                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white/40">
-                        {o.imageUrl ? (
-                          <img src={o.imageUrl} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <div className="grid h-full w-full place-items-center text-muted-foreground">
-                            <Package className="h-5 w-5" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 text-xs font-medium text-[var(--deep)]">
-                          {o.siteName}
+                      <div className="flex items-start gap-3 sm:contents">
+                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-white/40 sm:h-16 sm:w-16">
+                          {o.imageUrl ? (
+                            <img src={o.imageUrl} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="grid h-full w-full place-items-center text-muted-foreground">
+                              <Package className="h-5 w-5" />
+                            </div>
+                          )}
                         </div>
-                        <div className="line-clamp-2 mt-0.5 text-sm font-medium leading-snug">
-                          {o.title}
-                        </div>
-                        {o.description && (
-                          <div className="line-clamp-1 mt-1 text-xs text-muted-foreground">
-                            {o.description}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 text-xs font-medium text-[var(--deep)]">
+                            {o.siteName}
                           </div>
-                        )}
-                        <a
-                          href={o.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="mt-1 inline-block text-xs text-muted-foreground underline-offset-2 hover:underline"
-                        >
-                          View on {o.siteName}
-                        </a>
+                          <div className="line-clamp-2 mt-0.5 text-sm font-medium leading-snug break-words">
+                            {o.title}
+                          </div>
+                          {o.description && (
+                            <div className="line-clamp-1 mt-1 text-xs text-muted-foreground">
+                              {o.description}
+                            </div>
+                          )}
+                          <a
+                            href={o.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-1 inline-block text-xs text-muted-foreground underline-offset-2 hover:underline"
+                          >
+                            View on {o.siteName}
+                          </a>
+                        </div>
                       </div>
-                      <div className="flex flex-col items-end gap-2">
+                      <div className="flex items-center justify-between gap-2 sm:flex-col sm:items-end">
                         <div className="font-display text-lg font-bold">
                           {o.price !== null ? formatPrice(o.price, o.currency) : "—"}
                         </div>
                         <div
-                          className={`grid h-6 w-6 place-items-center rounded-full border transition ${
+                          className={`grid h-7 w-7 place-items-center rounded-full border transition ${
                             isSelected
                               ? "border-[var(--primary)] bg-[var(--primary)] text-primary-foreground"
                               : "border-border bg-white/40"
@@ -280,6 +283,7 @@ function SearchPage() {
                         </div>
                       </div>
                     </button>
+
                   );
                 })}
               </div>
