@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      price_alerts: {
+        Row: {
+          created_at: string
+          currency: string | null
+          emailed_at: string | null
+          id: string
+          new_price: number
+          old_price: number
+          product_id: string
+          source_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          emailed_at?: string | null
+          id?: string
+          new_price: number
+          old_price: number
+          product_id: string
+          source_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          emailed_at?: string | null
+          id?: string
+          new_price?: number
+          old_price?: number
+          product_id?: string
+          source_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       price_history: {
         Row: {
           currency: string | null
