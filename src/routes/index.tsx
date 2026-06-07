@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, Search, LineChart, Bell, Check } from "lucide-react";
+import { ArrowRight, Search, LineChart, Bell, Check, TrendingDown } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 
 export const Route = createFileRoute("/")({

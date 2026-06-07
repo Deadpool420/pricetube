@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Plus, Package, TrendingDown, Heart, ArrowDown, ArrowUp } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useRef } from "react";
+import { Plus, Package, TrendingDown, Heart, ArrowDown, ArrowUp, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { refreshUserPrices } from "@/lib/price-refresh.functions";
 
 export const Route = createFileRoute("/app/")({
   component: Dashboard,
@@ -27,12 +30,17 @@ type DashboardProduct = {
     site_name: string;
     current_price: number | null;
     currency: string | null;
+    last_checked_at: string | null;
     price_history: { price: number; recorded_at: string }[];
   }[];
+  wishlist: { product_id: string }[];
 };
 
 function Dashboard() {
   const { user } = useAuth();
+  const qc = useQueryClient();
+  const refresh = useServerFn(refreshUserPrices);
+  const triggered = useRef(false);
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["products", user?.id],
@@ -41,7 +49,7 @@ function Dashboard() {
       const { data, error } = await supabase
         .from("products")
         .select(
-          "id, name, image_url, created_at, product_sources(id, site_name, current_price, currency, price_history(price, recorded_at))",
+          "id, name, image_url, created_at, product_sources(id, site_name, current_price, currency, last_checked_at, price_history(price, recorded_at)), wishlist(product_id)",
         )
         .order("created_at", { ascending: false })
         .order("recorded_at", { foreignTable: "product_sources.price_history", ascending: false });
@@ -50,18 +58,44 @@ function Dashboard() {
     },
   });
 
+  // Auto-refresh: once per user per day (client-side throttle), server also no-ops if all fresh.
+  useEffect(() => {
+    if (!user || triggered.current) return;
+    const key = `pt-last-refresh-${user.id}`;
+    const last = Number(localStorage.getItem(key) || 0);
+    if (Date.now() - last < 24 * 60 * 60 * 1000) return;
+    triggered.current = true;
+    refresh({}).then((r) => {
+      if (r.ok) {
+        localStorage.setItem(key, String(Date.now()));
+        if (r.refreshed > 0) qc.invalidateQueries({ queryKey: ["products", user.id] });
+      }
+    });
+  }, [user, refresh, qc]);
+
+  const toggleWishlist = async (productId: string, currentlyWished: boolean) => {
+    if (!user) return;
+    if (currentlyWished) {
+      await supabase.from("wishlist").delete().eq("product_id", productId).eq("user_id", user.id);
+    } else {
+      await supabase.from("wishlist").insert({ product_id: productId, user_id: user.id });
+    }
+    qc.invalidateQueries({ queryKey: ["products", user.id] });
+    qc.invalidateQueries({ queryKey: ["wishlist"] });
+  };
+
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
-      <div className="mb-8 flex items-end justify-between">
+    <main className="mx-auto max-w-6xl px-4 py-8 md:py-10">
+      <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight md:text-4xl">Your tracker</h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">Your tracker</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {products?.length ?? 0} {products?.length === 1 ? "product" : "products"} watched
           </p>
         </div>
         <Link
           to="/app/add"
-          className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md hover:shadow-lg transition"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md hover:shadow-lg transition"
         >
           <Plus className="h-4 w-4" /> Track product
         </Link>
@@ -72,9 +106,9 @@ function Dashboard() {
       ) : !products || products.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {products.map((p) => (
-            <ProductCard key={p.id} product={p} />
+            <ProductCard key={p.id} product={p} onToggleWishlist={toggleWishlist} />
           ))}
         </div>
       )}
@@ -82,19 +116,24 @@ function Dashboard() {
   );
 }
 
-function ProductCard({ product }: { product: DashboardProduct }) {
+function ProductCard({
+  product,
+  onToggleWishlist,
+}: {
+  product: DashboardProduct;
+  onToggleWishlist: (id: string, wished: boolean) => void;
+}) {
   const prices = product.product_sources
     .map((s) => s.current_price)
     .filter((p): p is number => typeof p === "number");
   const lowest = prices.length ? Math.min(...prices) : null;
   const lowestSource = product.product_sources.find((s) => s.current_price === lowest);
   const currency = lowestSource?.currency ?? "USD";
+  const wished = (product.wishlist?.length ?? 0) > 0;
 
-  // Compute trend on the lowest source: compare its current_price to the prior history entry.
   let trend: "down" | "up" | null = null;
   if (lowestSource && typeof lowestSource.current_price === "number") {
     const history = lowestSource.price_history ?? [];
-    // History is ordered desc by recorded_at; find the first entry whose price differs from current.
     const prior = history.find((h) => Number(h.price) !== lowestSource.current_price);
     if (prior) {
       if (lowestSource.current_price < Number(prior.price)) trend = "down";
@@ -102,77 +141,107 @@ function ProductCard({ product }: { product: DashboardProduct }) {
     }
   }
 
+  const lastChecked = product.product_sources
+    .map((s) => s.last_checked_at)
+    .filter((d): d is string => !!d)
+    .sort()
+    .at(-1);
+
   return (
-    <Link
-      to="/app/product/$productId"
-      params={{ productId: product.id }}
-      className="glass glass-hover block rounded-3xl p-5"
-    >
-      <div className="flex items-start gap-4">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/60 p-1.5">
-          {product.image_url ? (
-            <img src={product.image_url} alt="" className="h-full w-full object-contain" />
-          ) : (
-            <div className="grid h-full w-full place-items-center text-muted-foreground">
-              <Package className="h-6 w-6" />
-            </div>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <h2 className="line-clamp-2 font-display text-sm font-semibold leading-tight">{product.name}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {product.product_sources.length} {product.product_sources.length === 1 ? "source" : "sources"}
-          </p>
-        </div>
-      </div>
-      <div className="mt-4 flex items-end justify-between">
-        <div>
-          <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
-            Lowest
-            {trend === "down" && (
-              <span
-                className="inline-flex items-center gap-0.5 rounded-full bg-[oklch(0.9_0.1_160/0.5)] px-1.5 py-0.5 text-[10px] font-semibold normal-case text-[oklch(0.4_0.13_160)]"
-                aria-label="Price dropped"
-                title="Price dropped"
-              >
-                <ArrowDown className="h-3 w-3" />
-              </span>
-            )}
-            {trend === "up" && (
-              <span
-                className="inline-flex items-center gap-0.5 rounded-full bg-[oklch(0.92_0.08_25/0.55)] px-1.5 py-0.5 text-[10px] font-semibold normal-case text-[oklch(0.45_0.18_25)]"
-                aria-label="Price went up"
-                title="Price went up"
-              >
-                <ArrowUp className="h-3 w-3" />
-              </span>
+    <div className="glass glass-hover relative block rounded-3xl p-5">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          onToggleWishlist(product.id, wished);
+        }}
+        aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+        className={`absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full glass-inset transition active:scale-95 ${
+          wished ? "text-destructive" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <Heart className={`h-4 w-4 ${wished ? "fill-current" : ""}`} />
+      </button>
+
+      <Link to="/app/product/$productId" params={{ productId: product.id }} className="block">
+        <div className="flex items-start gap-4 pr-10">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/60 p-1.5">
+            {product.image_url ? (
+              <img src={product.image_url} alt="" className="h-full w-full object-contain" />
+            ) : (
+              <div className="grid h-full w-full place-items-center text-muted-foreground">
+                <Package className="h-6 w-6" />
+              </div>
             )}
           </div>
-          <div className="font-display text-2xl font-bold text-gradient">
-            {lowest !== null ? formatPrice(lowest, currency) : "—"}
+          <div className="min-w-0 flex-1">
+            <h2 className="line-clamp-2 font-display text-sm font-semibold leading-tight break-words">
+              {product.name}
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {product.product_sources.length} {product.product_sources.length === 1 ? "source" : "sources"}
+            </p>
           </div>
         </div>
 
-        {lowestSource && (
-          <div className="flex items-center gap-1 rounded-full bg-[oklch(0.9_0.1_160/0.5)] px-2 py-1 text-xs font-medium text-[oklch(0.4_0.13_160)]">
-            <TrendingDown className="h-3 w-3" />
-            {lowestSource.site_name}
+        <div className="mt-4 flex items-end justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
+              Lowest
+              {trend === "down" && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-[oklch(0.9_0.1_160/0.5)] px-1.5 py-0.5 text-[10px] font-semibold normal-case text-[oklch(0.4_0.13_160)]">
+                  <ArrowDown className="h-3 w-3" />
+                </span>
+              )}
+              {trend === "up" && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-[oklch(0.92_0.08_25/0.55)] px-1.5 py-0.5 text-[10px] font-semibold normal-case text-[oklch(0.45_0.18_25)]">
+                  <ArrowUp className="h-3 w-3" />
+                </span>
+              )}
+            </div>
+            <div className="font-display text-2xl font-bold text-gradient break-words">
+              {lowest !== null ? formatPrice(lowest, currency) : "—"}
+            </div>
+          </div>
+
+          {lowestSource && (
+            <div className="flex shrink-0 items-center gap-1 rounded-full bg-[oklch(0.9_0.1_160/0.5)] px-2 py-1 text-xs font-medium text-[oklch(0.4_0.13_160)]">
+              <TrendingDown className="h-3 w-3" />
+              <span className="max-w-[80px] truncate">{lowestSource.site_name}</span>
+            </div>
+          )}
+        </div>
+
+        {lastChecked && (
+          <div className="mt-3 flex items-center gap-1 text-[11px] text-muted-foreground">
+            <Clock className="h-3 w-3" /> Updated {timeAgo(lastChecked)}
           </div>
         )}
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
+}
+
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 function EmptyState() {
   return (
-    <div className="glass-strong rounded-3xl p-12 text-center">
+    <div className="glass-strong rounded-3xl p-8 sm:p-12 text-center">
       <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--primary)] text-primary-foreground shadow-md">
         <Heart className="h-6 w-6" />
       </div>
       <h2 className="font-display text-xl font-semibold">Nothing tracked yet</h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        Paste a link to any product page to start watching its price.
+        Search a product or paste a link to start watching its price.
       </p>
       <Link
         to="/app/add"
