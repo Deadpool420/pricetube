@@ -243,13 +243,13 @@ function ProductCard({
             <div className="flex flex-wrap items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
               Lowest
               {trend === "down" && (
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-[oklch(0.9_0.1_160/0.5)] px-1.5 py-0.5 text-[10px] font-semibold normal-case text-[oklch(0.4_0.13_160)]">
-                  <ArrowDown className="h-3 w-3" />
+                <span className="inline-flex items-center gap-0.5 rounded-full glass-inset px-2 py-0.5 text-[10px] font-semibold normal-case text-[color:var(--success)]">
+                  <ArrowDown className="h-3 w-3" /> {symbol}{delta}
                 </span>
               )}
               {trend === "up" && (
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-[oklch(0.92_0.08_25/0.55)] px-1.5 py-0.5 text-[10px] font-semibold normal-case text-[oklch(0.45_0.18_25)]">
-                  <ArrowUp className="h-3 w-3" />
+                <span className="inline-flex items-center gap-0.5 rounded-full glass-inset px-2 py-0.5 text-[10px] font-semibold normal-case text-[color:var(--destructive)]">
+                  <ArrowUp className="h-3 w-3" /> {symbol}{delta}
                 </span>
               )}
             </div>
@@ -259,7 +259,7 @@ function ProductCard({
           </div>
 
           {lowestSource && (
-            <div className="flex shrink-0 items-center gap-1 rounded-full bg-[oklch(0.9_0.1_160/0.5)] px-2 py-1 text-xs font-medium text-[oklch(0.4_0.13_160)]">
+            <div className="flex shrink-0 items-center gap-1 rounded-full glass-inset px-2 py-1 text-xs font-medium text-[var(--primary)]">
               <TrendingDown className="h-3 w-3" />
               <span className="max-w-[80px] truncate">{lowestSource.site_name}</span>
             </div>
