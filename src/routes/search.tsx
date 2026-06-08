@@ -194,7 +194,7 @@ function SearchPage() {
               <input
                 type="text"
                 aria-label="Search products"
-                placeholder="e.g. CMF Phone 2 Pro"
+                placeholder="Search any product…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="w-full rounded-2xl glass-inset py-3 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-[var(--ring)]"
