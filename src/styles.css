@@ -42,58 +42,61 @@
 :root {
   --radius: 1.25rem;
 
-  /* Arctic frost palette */
-  --background: oklch(0.985 0.008 230);
-  --foreground: oklch(0.22 0.04 245);
+  /* Samsung One UI inspired blue palette */
+  /* Brand: #1259C3 (deep) → #4EADFF (sky) */
+  --background: #F5F8FD;
+  --foreground: #0A1929;
 
-  --card: oklch(1 0 0 / 0.55);
-  --card-foreground: oklch(0.22 0.04 245);
+  --card: rgb(255 255 255 / 0.95);
+  --card-foreground: #0A1929;
 
-  --popover: oklch(0.99 0.005 230);
-  --popover-foreground: oklch(0.22 0.04 245);
+  --popover: #FFFFFF;
+  --popover-foreground: #0A1929;
 
-  --primary: oklch(0.48 0.09 240);
-  --primary-foreground: oklch(0.985 0.005 230);
+  --primary: #1259C3;
+  --primary-foreground: #FFFFFF;
 
-  --secondary: oklch(0.93 0.025 230);
-  --secondary-foreground: oklch(0.3 0.05 245);
+  --secondary: #E5F0FB;
+  --secondary-foreground: #0A1929;
 
-  --muted: oklch(0.94 0.015 230);
-  --muted-foreground: oklch(0.5 0.03 240);
+  --muted: #EAF2FB;
+  --muted-foreground: #4B6478;
 
-  --accent: oklch(0.7 0.1 230);
-  --accent-foreground: oklch(0.22 0.04 245);
+  --accent: #4EADFF;
+  --accent-foreground: #0A1929;
 
-  --destructive: oklch(0.6 0.22 25);
-  --destructive-foreground: oklch(0.99 0 0);
+  --destructive: #DC2626;
+  --destructive-foreground: #FFFFFF;
 
-  --success: oklch(0.65 0.15 160);
-  --success-foreground: oklch(0.99 0 0);
+  --success: #16A34A;
+  --success-foreground: #FFFFFF;
 
-  --border: oklch(0.85 0.03 230 / 0.5);
-  --input: oklch(0.9 0.02 230 / 0.6);
-  --ring: oklch(0.55 0.1 235);
+  --border: rgb(78 173 255 / 0.22);
+  --input: rgb(78 173 255 / 0.25);
+  --ring: #4EADFF;
 
-  --frost: oklch(0.95 0.025 230);
-  --deep: oklch(0.32 0.08 245);
+  --frost: #EAF4FF;
+  --deep: #0A3F8F;
 
-  --chart-1: oklch(0.55 0.13 235);
-  --chart-2: oklch(0.7 0.11 200);
-  --chart-3: oklch(0.6 0.15 260);
-  --chart-4: oklch(0.75 0.12 180);
-  --chart-5: oklch(0.5 0.1 230);
+  /* Chart palette — all blues */
+  --chart-1: #1259C3;
+  --chart-2: #4EADFF;
+  --chart-3: #2E86E0;
+  --chart-4: #7CC4FF;
+  --chart-5: #0A3F8F;
 
-  /* Glass effects */
-  --glass-bg: oklch(1 0 0 / 0.45);
-  --glass-bg-strong: oklch(1 0 0 / 0.7);
-  --glass-border: oklch(1 0 0 / 0.6);
-  --glass-shadow: 0 8px 32px -4px oklch(0.4 0.08 240 / 0.18), inset 0 1px 0 0 oklch(1 0 0 / 0.6);
-  --glass-shadow-lg: 0 20px 60px -10px oklch(0.4 0.08 240 / 0.25), inset 0 1px 0 0 oklch(1 0 0 / 0.7);
+  /* Glass effects — blue tint */
+  --glass-bg: rgb(255 255 255 / 0.6);
+  --glass-bg-strong: rgb(255 255 255 / 0.85);
+  --glass-border: rgb(78 173 255 / 0.28);
+  --glass-shadow: 0 8px 32px -4px rgb(18 89 195 / 0.16), inset 0 1px 0 0 rgb(255 255 255 / 0.7);
+  --glass-shadow-lg: 0 20px 60px -10px rgb(18 89 195 / 0.22), inset 0 1px 0 0 rgb(255 255 255 / 0.8);
 
-  --gradient-mesh: radial-gradient(at 15% 20%, oklch(0.85 0.08 220 / 0.6) 0px, transparent 50%),
-    radial-gradient(at 85% 10%, oklch(0.88 0.06 200 / 0.55) 0px, transparent 50%),
-    radial-gradient(at 50% 80%, oklch(0.82 0.1 245 / 0.5) 0px, transparent 50%),
-    radial-gradient(at 90% 90%, oklch(0.9 0.05 195 / 0.5) 0px, transparent 50%);
+  --gradient-mesh:
+    radial-gradient(at 15% 15%, rgb(78 173 255 / 0.28) 0px, transparent 55%),
+    radial-gradient(at 85% 10%, rgb(124 196 255 / 0.32) 0px, transparent 55%),
+    radial-gradient(at 50% 85%, rgb(18 89 195 / 0.18) 0px, transparent 55%),
+    radial-gradient(at 90% 90%, rgb(78 173 255 / 0.22) 0px, transparent 55%);
 }
 
 @layer base {
@@ -105,6 +108,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -119,6 +123,7 @@
   h1, h2, h3, h4 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
+    color: #0A1929;
   }
 }
 
@@ -140,11 +145,11 @@
   }
 
   .glass-inset {
-    background: linear-gradient(180deg, oklch(1 0 0 / 0.4), oklch(1 0 0 / 0.15));
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.6), rgb(234 244 255 / 0.4));
     backdrop-filter: blur(20px) saturate(160%);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
-    border: 1px solid oklch(1 0 0 / 0.5);
-    box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.7), inset 0 -1px 0 oklch(0.5 0.05 230 / 0.08);
+    border: 1px solid rgb(255 255 255 / 0.6);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8), inset 0 -1px 0 rgb(18 89 195 / 0.06);
   }
 
   .glass-hover {
@@ -157,9 +162,13 @@
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, var(--deep), oklch(0.55 0.12 215));
+    background: linear-gradient(135deg, #1259C3, #4EADFF);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+  }
+
+  .bg-brand-gradient {
+    background: linear-gradient(135deg, #1259C3, #4EADFF);
   }
 }

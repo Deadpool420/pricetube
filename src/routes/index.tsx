@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { ArrowRight, Search, LineChart, Bell, Check, TrendingDown } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowRight, Search, LineChart, Bell, Check, TrendingDown, Loader2 } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/")({
   component: Landing,
@@ -40,7 +41,23 @@ const EXAMPLES = [
 
 function Landing() {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [q, setQ] = useState("");
+
+  // Smart redirect: signed-in users skip the landing page.
+  useEffect(() => {
+    if (!loading && user) {
+      navigate({ to: "/app", replace: true });
+    }
+  }, [user, loading, navigate]);
+
+  if (loading || user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +106,7 @@ function Landing() {
                 <input
                   type="text"
                   aria-label="Search any product"
-                  placeholder="e.g. CMF Phone 2 Pro"
+                  placeholder="Search any product…"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"

@@ -274,18 +274,20 @@ function ProductDetail() {
       )}
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <AlertDialogContent className="glass-strong rounded-3xl border-white/40">
+        <AlertDialogContent className="glass-strong rounded-3xl border-white/40 shadow-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-display">Delete this product?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="font-display text-xl">Delete this product?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
               This removes the product and all of its price history. You can't undo this.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel className="rounded-full border-0 bg-brand-gradient px-5 text-primary-foreground shadow-md hover:opacity-95 hover:text-primary-foreground">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={deleteProduct}
-              className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="rounded-full px-5 shadow-md bg-[rgb(220_38_38_/_0.92)] text-white hover:bg-[rgb(220_38_38_/_1)]"
             >
               Delete
             </AlertDialogAction>
