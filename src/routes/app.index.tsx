@@ -1,8 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef } from "react";
-import { Plus, Package, TrendingDown, Heart, ArrowDown, ArrowUp, Clock } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Plus, Package, TrendingDown, Heart, ArrowDown, ArrowUp, Clock, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { refreshUserPrices } from "@/lib/price-refresh.functions";
@@ -39,8 +39,10 @@ type DashboardProduct = {
 function Dashboard() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const refresh = useServerFn(refreshUserPrices);
   const triggered = useRef(false);
+  const [q, setQ] = useState("");
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["products", user?.id],
@@ -95,11 +97,44 @@ function Dashboard() {
         </div>
         <Link
           to="/app/add"
-          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md hover:shadow-lg transition"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-gradient px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md hover:shadow-lg transition"
         >
           <Plus className="h-4 w-4" /> Track product
         </Link>
       </div>
+
+      {/* Search shortcut */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const term = q.trim();
+          if (term.length < 2) return;
+          navigate({ to: "/search", search: { q: term } });
+        }}
+        className="mb-6 sm:mb-8"
+      >
+        <div className="glass-strong rounded-2xl p-2">
+          <div className="flex items-center gap-2 rounded-xl glass-inset px-3 py-2.5">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              aria-label="Search for a new product"
+              placeholder="Search any product to track…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+            <button
+              type="submit"
+              disabled={q.trim().length < 2}
+              className="rounded-full bg-brand-gradient px-4 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:shadow disabled:opacity-50"
+            >
+              Search
+            </button>
+          </div>
+        </div>
+      </form>
+
 
       {isLoading ? (
         <div className="glass rounded-3xl p-10 text-center text-sm text-muted-foreground">Loading…</div>
@@ -132,14 +167,33 @@ function ProductCard({
   const wished = (product.wishlist?.length ?? 0) > 0;
 
   let trend: "down" | "up" | null = null;
+  let delta = 0;
   if (lowestSource && typeof lowestSource.current_price === "number") {
     const history = lowestSource.price_history ?? [];
     const prior = history.find((h) => Number(h.price) !== lowestSource.current_price);
     if (prior) {
-      if (lowestSource.current_price < Number(prior.price)) trend = "down";
-      else if (lowestSource.current_price > Number(prior.price)) trend = "up";
+      const diff = lowestSource.current_price - Number(prior.price);
+      if (diff < 0) {
+        trend = "down";
+        delta = Math.abs(Math.round(diff));
+      } else if (diff > 0) {
+        trend = "up";
+        delta = Math.round(diff);
+      }
     }
   }
+
+  const symbol = (() => {
+    try {
+      const parts = new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: (currency || "USD").toUpperCase(),
+      }).formatToParts(0);
+      return parts.find((p) => p.type === "currency")?.value ?? "$";
+    } catch {
+      return "$";
+    }
+  })();
 
   const lastChecked = product.product_sources
     .map((s) => s.last_checked_at)
