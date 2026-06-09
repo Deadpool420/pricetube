@@ -221,6 +221,13 @@ function ProductDetail() {
             Refresh
           </button>
           <button
+            onClick={() => setEditOpen(true)}
+            className="flex items-center gap-1.5 rounded-full glass-inset px-4 py-2 text-xs font-medium hover:bg-white/80 transition"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit sources
+          </button>
+          <button
             onClick={() => setConfirmDelete(true)}
             className="grid h-10 w-10 place-items-center rounded-full glass-inset text-muted-foreground hover:text-destructive transition"
             aria-label="Delete"
