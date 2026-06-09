@@ -43,8 +43,18 @@ function Dashboard() {
   const refresh = useServerFn(refreshUserPrices);
   const triggered = useRef(false);
   const [q, setQ] = useState("");
+  const [lastRefresh, setLastRefresh] = useState<number | null>(null);
 
-  const { data: products, isLoading } = useQuery({
+  useEffect(() => {
+    if (!user) return;
+    const key = `pt-last-refresh-${user.id}`;
+    const v = Number(localStorage.getItem(key) || 0);
+    setLastRefresh(v || null);
+  }, [user]);
+
+  const lastRefreshLabel = lastRefresh ? timeAgo(new Date(lastRefresh).toISOString()) : null;
+
+  const { data: products, isLoading, error, refetch } = useQuery({
     queryKey: ["products", user?.id],
     enabled: !!user,
     queryFn: async (): Promise<DashboardProduct[]> => {
@@ -53,10 +63,9 @@ function Dashboard() {
         .select(
           "id, name, image_url, created_at, product_sources(id, site_name, current_price, currency, last_checked_at, price_history(price, recorded_at)), wishlist(product_id)",
         )
-        .order("created_at", { ascending: false })
-        .order("recorded_at", { foreignTable: "product_sources.price_history", ascending: false });
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as unknown as DashboardProduct[];
+      return (data ?? []) as unknown as DashboardProduct[];
     },
   });
 
@@ -69,7 +78,9 @@ function Dashboard() {
     triggered.current = true;
     refresh({}).then((r) => {
       if (r.ok) {
-        localStorage.setItem(key, String(Date.now()));
+        const now = Date.now();
+        localStorage.setItem(key, String(now));
+        setLastRefresh(now);
         if (r.refreshed > 0) qc.invalidateQueries({ queryKey: ["products", user.id] });
       }
     });
@@ -93,6 +104,7 @@ function Dashboard() {
           <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">Your tracker</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {products?.length ?? 0} {products?.length === 1 ? "product" : "products"} watched
+            {lastRefreshLabel ? <span className="text-muted-foreground/80"> · Last updated {lastRefreshLabel}</span> : null}
           </p>
         </div>
         <Link
@@ -137,7 +149,18 @@ function Dashboard() {
 
 
       {isLoading ? (
-        <div className="glass rounded-3xl p-10 text-center text-sm text-muted-foreground">Loading…</div>
+        <div className="glass rounded-3xl p-10 text-center text-sm text-muted-foreground">Loading your products…</div>
+      ) : error ? (
+        <div className="glass-strong rounded-3xl p-8 text-center">
+          <p className="font-display text-base font-semibold text-destructive">Couldn't load your products</p>
+          <p className="mt-1 text-sm text-muted-foreground">{(error as Error).message ?? "Something went wrong."}</p>
+          <button
+            onClick={() => refetch()}
+            className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-brand-gradient px-5 py-2 text-sm font-semibold text-primary-foreground shadow-md"
+          >
+            Try again
+          </button>
+        </div>
       ) : !products || products.length === 0 ? (
         <EmptyState />
       ) : (

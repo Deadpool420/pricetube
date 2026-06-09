@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, ExternalLink, Heart, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Heart, Loader2, RefreshCw, Trash2, Pencil, Plus, Search } from "lucide-react";
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import {
   AlertDialog,
@@ -15,9 +15,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { scrapeProductFromUrl } from "@/lib/price-scraping.functions";
+import { searchProductOffers } from "@/lib/product-search.functions";
 import { formatPrice } from "./app.index";
 
 export const Route = createFileRoute("/app/product/$productId")({
@@ -39,8 +41,14 @@ function ProductDetail() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const scrape = useServerFn(scrapeProductFromUrl);
+  const searchOffers = useServerFn(searchProductOffers);
   const [refreshing, setRefreshing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editQuery, setEditQuery] = useState("");
+  const [editSearching, setEditSearching] = useState(false);
+  const [editResults, setEditResults] = useState<any[]>([]);
+  const [addingUrl, setAddingUrl] = useState<string | null>(null);
 
 
 
@@ -108,6 +116,72 @@ function ProductDetail() {
     navigate({ to: "/app" });
   };
 
+  const removeSource = async (sourceId: string) => {
+    await supabase.from("price_history").delete().eq("source_id", sourceId);
+    const { error } = await supabase.from("product_sources").delete().eq("id", sourceId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Source removed");
+    qc.invalidateQueries({ queryKey: ["product", productId] });
+  };
+
+  const runEditSearch = async () => {
+    const term = editQuery.trim();
+    if (term.length < 2) return;
+    setEditSearching(true);
+    try {
+      const r = await searchOffers({ data: { query: term } });
+      if (r.ok) setEditResults(r.offers);
+      else toast.error(r.error ?? "Search failed");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Search failed");
+    } finally {
+      setEditSearching(false);
+    }
+  };
+
+  const addSource = async (offer: { url: string; siteName: string; price: number | null; currency: string }) => {
+    if (!user) return;
+    if (data?.sources.some((s) => s.url === offer.url)) {
+      toast.info("That source is already tracked");
+      return;
+    }
+    setAddingUrl(offer.url);
+    try {
+      const { data: inserted, error } = await supabase
+        .from("product_sources")
+        .insert({
+          product_id: productId,
+          user_id: user.id,
+          site_name: offer.siteName,
+          url: offer.url,
+          current_price: offer.price,
+          currency: offer.currency,
+          last_checked_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      if (typeof offer.price === "number" && inserted) {
+        await supabase.from("price_history").insert({
+          source_id: inserted.id,
+          user_id: user.id,
+          price: offer.price,
+          currency: offer.currency,
+        });
+      }
+      toast.success(`Added ${offer.siteName}`);
+      qc.invalidateQueries({ queryKey: ["product", productId] });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to add source");
+    } finally {
+      setAddingUrl(null);
+    }
+  };
+
+
 
   if (isLoading || !data?.product) {
     return (
@@ -145,6 +219,13 @@ function ProductDetail() {
           >
             {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             Refresh
+          </button>
+          <button
+            onClick={() => setEditOpen(true)}
+            className="flex items-center gap-1.5 rounded-full glass-inset px-4 py-2 text-xs font-medium hover:bg-white/80 transition"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit sources
           </button>
           <button
             onClick={() => setConfirmDelete(true)}
@@ -272,6 +353,97 @@ function ProductDetail() {
           </div>
         </>
       )}
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="glass-strong max-h-[90vh] overflow-y-auto rounded-3xl border-white/40 shadow-2xl sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Edit tracked sources</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Remove a store or add a new one to track for this product.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-2">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current sources</h3>
+            <div className="space-y-2">
+              {data.sources.length === 0 ? (
+                <p className="rounded-2xl glass-inset px-3 py-3 text-sm text-muted-foreground">No sources yet.</p>
+              ) : (
+                data.sources.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between gap-3 rounded-2xl glass-inset px-3 py-2.5">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">{s.site_name}</div>
+                      <div className="truncate text-[11px] text-muted-foreground">{s.url}</div>
+                    </div>
+                    <button
+                      onClick={() => removeSource(s.id)}
+                      aria-label={`Remove ${s.site_name}`}
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-full glass-inset text-muted-foreground transition hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Add a new source</h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                runEditSearch();
+              }}
+              className="flex items-center gap-2 rounded-2xl glass-inset px-3 py-2"
+            >
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={editQuery}
+                onChange={(e) => setEditQuery(e.target.value)}
+                placeholder="Search stores for this product…"
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+              <button
+                type="submit"
+                disabled={editSearching || editQuery.trim().length < 2}
+                className="rounded-full bg-brand-gradient px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm disabled:opacity-50"
+              >
+                {editSearching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Search"}
+              </button>
+            </form>
+
+            <div className="mt-3 space-y-2">
+              {editResults.map((o) => {
+                const already = data.sources.some((s) => s.url === o.url);
+                return (
+                  <div key={o.url} className="flex items-center justify-between gap-3 rounded-2xl glass-inset px-3 py-2.5">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">{o.siteName}</div>
+                      <div className="truncate text-[11px] text-muted-foreground">
+                        {typeof o.price === "number" ? formatPrice(o.price, o.currency) : "Price unknown"} · {o.url}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => addSource(o)}
+                      disabled={already || addingUrl === o.url}
+                      className="flex shrink-0 items-center gap-1 rounded-full bg-brand-gradient px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm disabled:opacity-50"
+                    >
+                      {addingUrl === o.url ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Plus className="h-3.5 w-3.5" />
+                      )}
+                      {already ? "Added" : "Add"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent className="glass-strong rounded-3xl border-white/40 shadow-2xl">
