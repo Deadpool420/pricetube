@@ -78,7 +78,9 @@ function Dashboard() {
     triggered.current = true;
     refresh({}).then((r) => {
       if (r.ok) {
-        localStorage.setItem(key, String(Date.now()));
+        const now = Date.now();
+        localStorage.setItem(key, String(now));
+        setLastRefresh(now);
         if (r.refreshed > 0) qc.invalidateQueries({ queryKey: ["products", user.id] });
       }
     });
