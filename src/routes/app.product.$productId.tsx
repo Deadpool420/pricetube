@@ -116,6 +116,72 @@ function ProductDetail() {
     navigate({ to: "/app" });
   };
 
+  const removeSource = async (sourceId: string) => {
+    await supabase.from("price_history").delete().eq("source_id", sourceId);
+    const { error } = await supabase.from("product_sources").delete().eq("id", sourceId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Source removed");
+    qc.invalidateQueries({ queryKey: ["product", productId] });
+  };
+
+  const runEditSearch = async () => {
+    const term = editQuery.trim();
+    if (term.length < 2) return;
+    setEditSearching(true);
+    try {
+      const r = await searchOffers({ data: { query: term } });
+      if (r.ok) setEditResults(r.offers);
+      else toast.error(r.error ?? "Search failed");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Search failed");
+    } finally {
+      setEditSearching(false);
+    }
+  };
+
+  const addSource = async (offer: { url: string; siteName: string; price: number | null; currency: string }) => {
+    if (!user) return;
+    if (data?.sources.some((s) => s.url === offer.url)) {
+      toast.info("That source is already tracked");
+      return;
+    }
+    setAddingUrl(offer.url);
+    try {
+      const { data: inserted, error } = await supabase
+        .from("product_sources")
+        .insert({
+          product_id: productId,
+          user_id: user.id,
+          site_name: offer.siteName,
+          url: offer.url,
+          current_price: offer.price,
+          currency: offer.currency,
+          last_checked_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      if (typeof offer.price === "number" && inserted) {
+        await supabase.from("price_history").insert({
+          source_id: inserted.id,
+          user_id: user.id,
+          price: offer.price,
+          currency: offer.currency,
+        });
+      }
+      toast.success(`Added ${offer.siteName}`);
+      qc.invalidateQueries({ queryKey: ["product", productId] });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to add source");
+    } finally {
+      setAddingUrl(null);
+    }
+  };
+
+
 
   if (isLoading || !data?.product) {
     return (
