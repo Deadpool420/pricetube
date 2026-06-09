@@ -41,8 +41,14 @@ function ProductDetail() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const scrape = useServerFn(scrapeProductFromUrl);
+  const searchOffers = useServerFn(searchProductOffers);
   const [refreshing, setRefreshing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editQuery, setEditQuery] = useState("");
+  const [editSearching, setEditSearching] = useState(false);
+  const [editResults, setEditResults] = useState<any[]>([]);
+  const [addingUrl, setAddingUrl] = useState<string | null>(null);
 
 
 
