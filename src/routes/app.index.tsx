@@ -92,6 +92,7 @@ function Dashboard() {
           <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">Your tracker</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {products?.length ?? 0} {products?.length === 1 ? "product" : "products"} watched
+            {lastRefreshLabel ? <span className="text-muted-foreground/80"> · Last updated {lastRefreshLabel}</span> : null}
           </p>
         </div>
         <Link
