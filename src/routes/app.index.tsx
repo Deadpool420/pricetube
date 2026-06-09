@@ -149,7 +149,18 @@ function Dashboard() {
 
 
       {isLoading ? (
-        <div className="glass rounded-3xl p-10 text-center text-sm text-muted-foreground">Loading…</div>
+        <div className="glass rounded-3xl p-10 text-center text-sm text-muted-foreground">Loading your products…</div>
+      ) : error ? (
+        <div className="glass-strong rounded-3xl p-8 text-center">
+          <p className="font-display text-base font-semibold text-destructive">Couldn't load your products</p>
+          <p className="mt-1 text-sm text-muted-foreground">{(error as Error).message ?? "Something went wrong."}</p>
+          <button
+            onClick={() => refetch()}
+            className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-brand-gradient px-5 py-2 text-sm font-semibold text-primary-foreground shadow-md"
+          >
+            Try again
+          </button>
+        </div>
       ) : !products || products.length === 0 ? (
         <EmptyState />
       ) : (
