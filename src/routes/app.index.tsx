@@ -44,7 +44,7 @@ function Dashboard() {
   const triggered = useRef(false);
   const [q, setQ] = useState("");
 
-  const { data: products, isLoading } = useQuery({
+  const { data: products, isLoading, error, refetch } = useQuery({
     queryKey: ["products", user?.id],
     enabled: !!user,
     queryFn: async (): Promise<DashboardProduct[]> => {
@@ -53,10 +53,9 @@ function Dashboard() {
         .select(
           "id, name, image_url, created_at, product_sources(id, site_name, current_price, currency, last_checked_at, price_history(price, recorded_at)), wishlist(product_id)",
         )
-        .order("created_at", { ascending: false })
-        .order("recorded_at", { foreignTable: "product_sources.price_history", ascending: false });
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as unknown as DashboardProduct[];
+      return (data ?? []) as unknown as DashboardProduct[];
     },
   });
 
