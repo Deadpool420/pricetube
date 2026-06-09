@@ -354,6 +354,97 @@ function ProductDetail() {
         </>
       )}
 
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="glass-strong max-h-[90vh] overflow-y-auto rounded-3xl border-white/40 shadow-2xl sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Edit tracked sources</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Remove a store or add a new one to track for this product.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-2">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current sources</h3>
+            <div className="space-y-2">
+              {data.sources.length === 0 ? (
+                <p className="rounded-2xl glass-inset px-3 py-3 text-sm text-muted-foreground">No sources yet.</p>
+              ) : (
+                data.sources.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between gap-3 rounded-2xl glass-inset px-3 py-2.5">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">{s.site_name}</div>
+                      <div className="truncate text-[11px] text-muted-foreground">{s.url}</div>
+                    </div>
+                    <button
+                      onClick={() => removeSource(s.id)}
+                      aria-label={`Remove ${s.site_name}`}
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-full glass-inset text-muted-foreground transition hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Add a new source</h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                runEditSearch();
+              }}
+              className="flex items-center gap-2 rounded-2xl glass-inset px-3 py-2"
+            >
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={editQuery}
+                onChange={(e) => setEditQuery(e.target.value)}
+                placeholder="Search stores for this product…"
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              />
+              <button
+                type="submit"
+                disabled={editSearching || editQuery.trim().length < 2}
+                className="rounded-full bg-brand-gradient px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm disabled:opacity-50"
+              >
+                {editSearching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Search"}
+              </button>
+            </form>
+
+            <div className="mt-3 space-y-2">
+              {editResults.map((o) => {
+                const already = data.sources.some((s) => s.url === o.url);
+                return (
+                  <div key={o.url} className="flex items-center justify-between gap-3 rounded-2xl glass-inset px-3 py-2.5">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">{o.siteName}</div>
+                      <div className="truncate text-[11px] text-muted-foreground">
+                        {typeof o.price === "number" ? formatPrice(o.price, o.currency) : "Price unknown"} · {o.url}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => addSource(o)}
+                      disabled={already || addingUrl === o.url}
+                      className="flex shrink-0 items-center gap-1 rounded-full bg-brand-gradient px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm disabled:opacity-50"
+                    >
+                      {addingUrl === o.url ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Plus className="h-3.5 w-3.5" />
+                      )}
+                      {already ? "Added" : "Add"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent className="glass-strong rounded-3xl border-white/40 shadow-2xl">
           <AlertDialogHeader>
