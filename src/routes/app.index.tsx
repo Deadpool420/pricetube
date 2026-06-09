@@ -43,6 +43,16 @@ function Dashboard() {
   const refresh = useServerFn(refreshUserPrices);
   const triggered = useRef(false);
   const [q, setQ] = useState("");
+  const [lastRefresh, setLastRefresh] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const key = `pt-last-refresh-${user.id}`;
+    const v = Number(localStorage.getItem(key) || 0);
+    setLastRefresh(v || null);
+  }, [user]);
+
+  const lastRefreshLabel = lastRefresh ? timeAgo(new Date(lastRefresh).toISOString()) : null;
 
   const { data: products, isLoading, error, refetch } = useQuery({
     queryKey: ["products", user?.id],
