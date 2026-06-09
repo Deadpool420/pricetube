@@ -34,11 +34,11 @@ export function AppHeader() {
         </Link>
 
         {/* Center: nav */}
-        <nav className="hidden items-center gap-1 justify-self-center sm:flex">
+        <nav className="flex items-center gap-1 justify-self-center">
           <Link
             to="/search"
-            className="rounded-full px-4 py-1.5 text-sm text-muted-foreground hover:bg-white/60 hover:text-foreground transition"
-            activeProps={{ className: "rounded-full px-4 py-1.5 text-sm bg-white/70 text-foreground" }}
+            className="rounded-full px-3 py-1.5 text-xs sm:text-sm text-muted-foreground hover:bg-white/60 hover:text-foreground transition"
+            activeProps={{ className: "rounded-full px-3 py-1.5 text-xs sm:text-sm bg-white/70 text-foreground" }}
           >
             Search
           </Link>
@@ -46,15 +46,15 @@ export function AppHeader() {
             <>
               <Link
                 to="/app"
-                className="rounded-full px-4 py-1.5 text-sm text-muted-foreground hover:bg-white/60 hover:text-foreground transition"
-                activeProps={{ className: "rounded-full px-4 py-1.5 text-sm bg-white/70 text-foreground" }}
+                className="rounded-full px-3 py-1.5 text-xs sm:text-sm text-muted-foreground hover:bg-white/60 hover:text-foreground transition"
+                activeProps={{ className: "rounded-full px-3 py-1.5 text-xs sm:text-sm bg-white/70 text-foreground" }}
               >
                 Dashboard
               </Link>
               <Link
                 to="/app/wishlist"
-                className="rounded-full px-4 py-1.5 text-sm text-muted-foreground hover:bg-white/60 hover:text-foreground transition"
-                activeProps={{ className: "rounded-full px-4 py-1.5 text-sm bg-white/70 text-foreground" }}
+                className="rounded-full px-3 py-1.5 text-xs sm:text-sm text-muted-foreground hover:bg-white/60 hover:text-foreground transition"
+                activeProps={{ className: "rounded-full px-3 py-1.5 text-xs sm:text-sm bg-white/70 text-foreground" }}
               >
                 Wishlist
               </Link>
