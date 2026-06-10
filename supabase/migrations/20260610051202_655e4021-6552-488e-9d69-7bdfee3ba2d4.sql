@@ -1,0 +1,2 @@
+CREATE POLICY "Users delete own price alerts" ON public.price_alerts FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Users delete own price history" ON public.price_history FOR DELETE USING (auth.uid() = user_id);
