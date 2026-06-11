@@ -333,18 +333,24 @@ function ProductDetail() {
                   />
                   <Tooltip
                     cursor={{ stroke: "oklch(0.7 0.02 240)", strokeWidth: 1, strokeDasharray: "3 3" }}
-                    contentStyle={{
-                      background: "oklch(1 0 0 / 0.92)",
-                      backdropFilter: "blur(20px)",
-                      border: "1px solid oklch(0.88 0.02 230 / 0.6)",
-                      borderRadius: 12,
-                      fontSize: 12,
-                      boxShadow: "0 8px 24px -12px oklch(0 0 0 / 0.18)",
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload || !payload.length) return null;
+                      const sorted = [...payload]
+                        .filter((p) => typeof p.value === "number")
+                        .sort((a, b) => (b.value as number) - (a.value as number));
+                      return (
+                        <div className="rounded-xl border border-white/60 bg-white/95 px-3 py-2 text-xs shadow-lg backdrop-blur-xl">
+                          <div className="mb-1 font-medium text-muted-foreground">{label}</div>
+                          {sorted.map((p) => (
+                            <div key={String(p.dataKey)} className="flex items-center gap-2">
+                              <span className="h-2 w-2 rounded-full" style={{ background: p.color }} />
+                              <span className="text-foreground">{p.name}</span>
+                              <span className="ml-auto font-semibold">{formatPrice(p.value as number, currency)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
                     }}
-                    labelStyle={{ color: "oklch(0.45 0.03 240)", fontWeight: 500, marginBottom: 4 }}
-                    formatter={(value: number | string) =>
-                      typeof value === "number" ? formatPrice(value, currency) : value
-                    }
                   />
                   {data.sources.map((s, i) => (
                     <Area
