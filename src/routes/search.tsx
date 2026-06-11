@@ -7,6 +7,7 @@ import { Loader2, Search, Package, Check, Sparkles, X } from "lucide-react";
 import { searchProductOffers } from "@/lib/product-search.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useCountry } from "@/hooks/use-country";
 import { AppHeader } from "@/components/app-header";
 import { formatPrice } from "@/routes/app.index";
 
