@@ -50,6 +50,7 @@ type Offer = {
 
 function SearchPage() {
   const { user } = useAuth();
+  const { country } = useCountry();
   const navigate = useNavigate();
   const { q } = Route.useSearch();
   const search = useServerFn(searchProductOffers);
@@ -67,7 +68,8 @@ function SearchPage() {
     setOffers(null);
     setSelected(new Set());
     try {
-      const r = await search({ data: { query: term.trim() } });
+      const finalQuery = country ? `${term.trim()} ${country}` : term.trim();
+      const r = await search({ data: { query: finalQuery } });
       if (!r.ok) {
         toast.error(r.error);
         return;
