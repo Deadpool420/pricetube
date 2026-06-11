@@ -277,7 +277,7 @@ function ProductCard({
               )}
             </div>
             <div className="font-display text-2xl font-bold text-gradient break-words">
-              {lowest !== null ? formatPrice(lowest, currency) : "—"}
+              {lowest !== null ? formatPrice(lowest, currency) : <span className="text-base font-semibold text-muted-foreground">Price unavailable</span>}
             </div>
           </div>
 
