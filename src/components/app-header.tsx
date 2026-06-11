@@ -187,7 +187,7 @@ export function AppHeader() {
               to="/login"
               className="flex items-center gap-1.5 rounded-full bg-brand-gradient px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-md hover:shadow-lg transition sm:px-4"
             >
-              <Sparkles className="h-3.5 w-3.5" /> <span className="hidden xs:inline sm:inline">Sign in</span>
+              <Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Sign in</span>
             </Link>
           )}
         </div>
