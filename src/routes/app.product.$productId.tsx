@@ -255,12 +255,12 @@ function ProductDetail() {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <h1 className="font-display text-2xl font-bold tracking-tight">{data.product.name}</h1>
+            <h1 className="font-display text-xl font-bold tracking-tight break-words sm:text-2xl">{data.product.name}</h1>
             <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <div className="font-display text-3xl font-bold text-gradient break-all md:text-4xl">
-                {lowest !== null ? formatPrice(lowest, currency) : "—"}
+              <div className="font-display text-2xl font-bold text-gradient break-words sm:text-3xl md:text-4xl">
+                {lowest !== null ? formatPrice(lowest, currency) : <span className="text-base text-muted-foreground">Price unavailable</span>}
               </div>
-              <div className="text-xs text-muted-foreground">lowest right now</div>
+              {lowest !== null && <div className="text-xs text-muted-foreground">lowest right now</div>}
             </div>
           </div>
         </div>
