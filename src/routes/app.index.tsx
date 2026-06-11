@@ -183,7 +183,7 @@ function ProductCard({
 }) {
   const prices = product.product_sources
     .map((s) => s.current_price)
-    .filter((p): p is number => typeof p === "number");
+    .filter((p): p is number => typeof p === "number" && p > 0);
   const lowest = prices.length ? Math.min(...prices) : null;
   const lowestSource = product.product_sources.find((s) => s.current_price === lowest);
   const currency = lowestSource?.currency ?? "USD";
