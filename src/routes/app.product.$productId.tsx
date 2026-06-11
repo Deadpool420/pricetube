@@ -507,3 +507,11 @@ function buildChartData(history: any[], sources: any[]) {
   }
   return Array.from(byDate.values());
 }
+
+function getDomain(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
