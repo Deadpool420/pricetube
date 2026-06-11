@@ -273,20 +273,22 @@ function ProductDetail() {
           return (
             <div
               key={s.id}
-              className={`glass glass-hover rounded-2xl p-5 ${isLowest ? "ring-2 ring-[var(--success)]/60" : ""}`}
+              className={`glass glass-hover overflow-hidden rounded-2xl p-4 sm:p-5 ${isLowest ? "ring-2 ring-[var(--success)]/60" : ""}`}
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">{s.site_name}</div>
-                  <div className="mt-1 font-display text-2xl font-bold">
-                    {typeof s.current_price === "number" ? formatPrice(s.current_price, s.currency ?? "USD") : "—"}
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-xs uppercase tracking-wide text-muted-foreground">{s.site_name}</div>
+                  <div className="mt-1 font-display text-xl font-bold break-words sm:text-2xl">
+                    {typeof s.current_price === "number" && s.current_price > 0
+                      ? formatPrice(s.current_price, s.currency ?? "USD")
+                      : <span className="text-sm font-medium text-muted-foreground">Price unavailable</span>}
                   </div>
                 </div>
                 <a
                   href={/^https?:\/\//i.test(s.url) ? s.url : "#"}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-3 py-1.5 text-xs font-medium text-primary-foreground"
+                  className="flex shrink-0 items-center gap-1 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-3 py-1.5 text-xs font-medium text-primary-foreground"
                 >
                   Buy <ExternalLink className="h-3 w-3" />
                 </a>
