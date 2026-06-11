@@ -199,7 +199,9 @@ function ProductDetail() {
     );
   }
 
-  const prices = data.sources.map((s) => s.current_price).filter((p): p is number => typeof p === "number");
+  const prices = data.sources
+    .map((s) => s.current_price)
+    .filter((p): p is number => typeof p === "number" && p > 0);
   const lowest = prices.length ? Math.min(...prices) : null;
   const currency = data.sources[0]?.currency ?? "USD";
 
@@ -207,8 +209,8 @@ function ProductDetail() {
   const chartData = buildChartData(data.history, data.sources);
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10">
-      <div className="mb-6 flex items-center justify-between">
+    <main className="mx-auto w-full max-w-4xl overflow-x-hidden px-4 py-10">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <Link to="/app" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
