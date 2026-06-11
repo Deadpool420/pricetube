@@ -128,13 +128,21 @@ function ProductDetail() {
   };
 
   const runEditSearch = async () => {
-    const term = editQuery.trim();
-    if (term.length < 2) return;
+    const store = editQuery.trim();
+    if (store.length < 2 || !data?.product) return;
+    const term = `${data.product.name} ${store}`.trim();
     setEditSearching(true);
     try {
       const r = await searchOffers({ data: { query: term } });
-      if (r.ok) setEditResults(r.offers);
-      else toast.error(r.error ?? "Search failed");
+      if (r.ok) {
+        // Sort: priced offers first (cheapest first), unknown prices last
+        const sorted = [...r.offers].sort((a, b) => {
+          const ap = typeof a.price === "number" && a.price > 0 ? a.price : Number.POSITIVE_INFINITY;
+          const bp = typeof b.price === "number" && b.price > 0 ? b.price : Number.POSITIVE_INFINITY;
+          return ap - bp;
+        });
+        setEditResults(sorted);
+      } else toast.error(r.error ?? "Search failed");
     } catch (err: any) {
       toast.error(err?.message ?? "Search failed");
     } finally {
@@ -191,7 +199,9 @@ function ProductDetail() {
     );
   }
 
-  const prices = data.sources.map((s) => s.current_price).filter((p): p is number => typeof p === "number");
+  const prices = data.sources
+    .map((s) => s.current_price)
+    .filter((p): p is number => typeof p === "number" && p > 0);
   const lowest = prices.length ? Math.min(...prices) : null;
   const currency = data.sources[0]?.currency ?? "USD";
 
@@ -199,8 +209,8 @@ function ProductDetail() {
   const chartData = buildChartData(data.history, data.sources);
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10">
-      <div className="mb-6 flex items-center justify-between">
+    <main className="mx-auto w-full max-w-4xl overflow-x-hidden px-4 py-10">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <Link to="/app" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
@@ -245,12 +255,12 @@ function ProductDetail() {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <h1 className="font-display text-2xl font-bold tracking-tight">{data.product.name}</h1>
+            <h1 className="font-display text-xl font-bold tracking-tight break-words sm:text-2xl">{data.product.name}</h1>
             <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <div className="font-display text-3xl font-bold text-gradient break-all md:text-4xl">
-                {lowest !== null ? formatPrice(lowest, currency) : "—"}
+              <div className="font-display text-2xl font-bold text-gradient break-words sm:text-3xl md:text-4xl">
+                {lowest !== null ? formatPrice(lowest, currency) : <span className="text-base text-muted-foreground">Price unavailable</span>}
               </div>
-              <div className="text-xs text-muted-foreground">lowest right now</div>
+              {lowest !== null && <div className="text-xs text-muted-foreground">lowest right now</div>}
             </div>
           </div>
         </div>
@@ -263,20 +273,22 @@ function ProductDetail() {
           return (
             <div
               key={s.id}
-              className={`glass glass-hover rounded-2xl p-5 ${isLowest ? "ring-2 ring-[var(--success)]/60" : ""}`}
+              className={`glass glass-hover overflow-hidden rounded-2xl p-4 sm:p-5 ${isLowest ? "ring-2 ring-[var(--success)]/60" : ""}`}
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground">{s.site_name}</div>
-                  <div className="mt-1 font-display text-2xl font-bold">
-                    {typeof s.current_price === "number" ? formatPrice(s.current_price, s.currency ?? "USD") : "—"}
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-xs uppercase tracking-wide text-muted-foreground">{s.site_name}</div>
+                  <div className="mt-1 font-display text-xl font-bold break-words sm:text-2xl">
+                    {typeof s.current_price === "number" && s.current_price > 0
+                      ? formatPrice(s.current_price, s.currency ?? "USD")
+                      : <span className="text-sm font-medium text-muted-foreground">Price unavailable</span>}
                   </div>
                 </div>
                 <a
                   href={/^https?:\/\//i.test(s.url) ? s.url : "#"}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-3 py-1.5 text-xs font-medium text-primary-foreground"
+                  className="flex shrink-0 items-center gap-1 rounded-full bg-gradient-to-r from-[var(--primary)] to-[var(--deep)] px-3 py-1.5 text-xs font-medium text-primary-foreground"
                 >
                   Buy <ExternalLink className="h-3 w-3" />
                 </a>
@@ -321,18 +333,24 @@ function ProductDetail() {
                   />
                   <Tooltip
                     cursor={{ stroke: "oklch(0.7 0.02 240)", strokeWidth: 1, strokeDasharray: "3 3" }}
-                    contentStyle={{
-                      background: "oklch(1 0 0 / 0.92)",
-                      backdropFilter: "blur(20px)",
-                      border: "1px solid oklch(0.88 0.02 230 / 0.6)",
-                      borderRadius: 12,
-                      fontSize: 12,
-                      boxShadow: "0 8px 24px -12px oklch(0 0 0 / 0.18)",
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload || !payload.length) return null;
+                      const sorted = [...payload]
+                        .filter((p) => typeof p.value === "number")
+                        .sort((a, b) => (b.value as number) - (a.value as number));
+                      return (
+                        <div className="rounded-xl border border-white/60 bg-white/95 px-3 py-2 text-xs shadow-lg backdrop-blur-xl">
+                          <div className="mb-1 font-medium text-muted-foreground">{label}</div>
+                          {sorted.map((p) => (
+                            <div key={String(p.dataKey)} className="flex items-center gap-2">
+                              <span className="h-2 w-2 rounded-full" style={{ background: p.color }} />
+                              <span className="text-foreground">{p.name}</span>
+                              <span className="ml-auto font-semibold">{formatPrice(p.value as number, currency)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
                     }}
-                    labelStyle={{ color: "oklch(0.45 0.03 240)", fontWeight: 500, marginBottom: 4 }}
-                    formatter={(value: number | string) =>
-                      typeof value === "number" ? formatPrice(value, currency) : value
-                    }
                   />
                   {data.sources.map((s, i) => (
                     <Area
@@ -355,93 +373,98 @@ function ProductDetail() {
       )}
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="glass-strong max-h-[90vh] overflow-y-auto rounded-3xl border-white/40 shadow-2xl sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">Edit tracked sources</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
+        <DialogContent className="glass-strong flex max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-lg flex-col overflow-hidden rounded-3xl border-white/40 p-4 shadow-2xl sm:p-6">
+          <DialogHeader className="shrink-0 pr-8">
+            <DialogTitle className="font-display text-lg leading-tight sm:text-xl">Edit tracked sources</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground sm:text-sm">
               Remove a store or add a new one to track for this product.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="mt-2">
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current sources</h3>
-            <div className="space-y-2">
-              {data.sources.length === 0 ? (
-                <p className="rounded-2xl glass-inset px-3 py-3 text-sm text-muted-foreground">No sources yet.</p>
-              ) : (
-                data.sources.map((s) => (
-                  <div key={s.id} className="flex items-center justify-between gap-3 rounded-2xl glass-inset px-3 py-2.5">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium">{s.site_name}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">{s.url}</div>
-                    </div>
-                    <button
-                      onClick={() => removeSource(s.id)}
-                      aria-label={`Remove ${s.site_name}`}
-                      className="grid h-9 w-9 shrink-0 place-items-center rounded-full glass-inset text-muted-foreground transition hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="mt-5">
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Add a new source</h3>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                runEditSearch();
-              }}
-              className="flex items-center gap-2 rounded-2xl glass-inset px-3 py-2"
-            >
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <input
-                type="text"
-                value={editQuery}
-                onChange={(e) => setEditQuery(e.target.value)}
-                placeholder="Search stores for this product…"
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-              />
-              <button
-                type="submit"
-                disabled={editSearching || editQuery.trim().length < 2}
-                className="rounded-full bg-brand-gradient px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm disabled:opacity-50"
-              >
-                {editSearching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Search"}
-              </button>
-            </form>
-
-            <div className="mt-3 space-y-2">
-              {editResults.map((o) => {
-                const already = data.sources.some((s) => s.url === o.url);
-                return (
-                  <div key={o.url} className="flex items-center justify-between gap-3 rounded-2xl glass-inset px-3 py-2.5">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium">{o.siteName}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">
-                        {typeof o.price === "number" ? formatPrice(o.price, o.currency) : "Price unknown"} · {o.url}
+          <div className="mt-3 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
+            <div>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current sources</h3>
+              <div className="space-y-2">
+                {data.sources.length === 0 ? (
+                  <p className="rounded-2xl glass-inset px-3 py-3 text-sm text-muted-foreground">No sources yet.</p>
+                ) : (
+                  data.sources.map((s) => (
+                    <div key={s.id} className="flex w-full items-center gap-2 overflow-hidden rounded-2xl glass-inset px-3 py-2.5">
+                      <div className="min-w-0 flex-1 overflow-hidden">
+                        <div className="truncate text-sm font-medium">{s.site_name}</div>
+                        <div className="truncate text-[11px] text-muted-foreground">{getDomain(s.url)}</div>
                       </div>
+                      <button
+                        onClick={() => removeSource(s.id)}
+                        aria-label={`Remove ${s.site_name}`}
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full glass-inset text-muted-foreground transition hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
-                    <button
-                      onClick={() => addSource(o)}
-                      disabled={already || addingUrl === o.url}
-                      className="flex shrink-0 items-center gap-1 rounded-full bg-brand-gradient px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm disabled:opacity-50"
-                    >
-                      {addingUrl === o.url ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Plus className="h-3.5 w-3.5" />
-                      )}
-                      {already ? "Added" : "Add"}
-                    </button>
-                  </div>
-                );
-              })}
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Add a new source</h3>
+              <div className="mt-3 space-y-2">
+                {editResults.map((o) => {
+                  const already = data.sources.some((s) => s.url === o.url);
+                  const hasPrice = typeof o.price === "number" && o.price > 0;
+                  return (
+                    <div key={o.url} className="flex w-full items-center gap-2 overflow-hidden rounded-2xl glass-inset px-3 py-2.5">
+                      <div className="min-w-0 flex-1 overflow-hidden">
+                        <div className="truncate text-sm font-medium">{o.siteName}</div>
+                        <div className="truncate text-[11px] text-muted-foreground">
+                          {hasPrice ? formatPrice(o.price, o.currency) : "Price unknown"} · {getDomain(o.url)}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => addSource(o)}
+                        disabled={already || addingUrl === o.url}
+                        aria-label={already ? "Already added" : `Add ${o.siteName}`}
+                        className="flex shrink-0 items-center gap-1 rounded-full bg-brand-gradient px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm disabled:opacity-50"
+                      >
+                        {addingUrl === o.url ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Plus className="h-3.5 w-3.5" />
+                        )}
+                        {already ? "Added" : "Add"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
+
+          {/* Sticky bottom search */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              runEditSearch();
+            }}
+            className="mt-3 flex shrink-0 items-center gap-2 overflow-hidden rounded-2xl glass-inset px-3 py-2"
+          >
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <input
+              type="text"
+              value={editQuery}
+              onChange={(e) => setEditQuery(e.target.value)}
+              placeholder="Add store (e.g. Sumash Tech)"
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+            <button
+              type="submit"
+              disabled={editSearching || editQuery.trim().length < 2}
+              className="shrink-0 rounded-full bg-brand-gradient px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm disabled:opacity-50"
+            >
+              {editSearching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Search"}
+            </button>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -483,4 +506,12 @@ function buildChartData(history: any[], sources: any[]) {
     byDate.set(label, row);
   }
   return Array.from(byDate.values());
+}
+
+function getDomain(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
 }

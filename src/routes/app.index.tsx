@@ -183,7 +183,7 @@ function ProductCard({
 }) {
   const prices = product.product_sources
     .map((s) => s.current_price)
-    .filter((p): p is number => typeof p === "number");
+    .filter((p): p is number => typeof p === "number" && p > 0);
   const lowest = prices.length ? Math.min(...prices) : null;
   const lowestSource = product.product_sources.find((s) => s.current_price === lowest);
   const currency = lowestSource?.currency ?? "USD";
@@ -277,7 +277,7 @@ function ProductCard({
               )}
             </div>
             <div className="font-display text-2xl font-bold text-gradient break-words">
-              {lowest !== null ? formatPrice(lowest, currency) : "—"}
+              {lowest !== null ? formatPrice(lowest, currency) : <span className="text-base font-semibold text-muted-foreground">Price unavailable</span>}
             </div>
           </div>
 

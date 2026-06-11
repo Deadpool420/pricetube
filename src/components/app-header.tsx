@@ -1,7 +1,8 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { Droplets, LogOut, Sparkles, Settings, Bell } from "lucide-react";
+import { Droplets, LogOut, Sparkles, Settings, Bell, Search, LayoutGrid, Heart, Globe, Check } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useCountry, COUNTRIES } from "@/hooks/use-country";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,11 +10,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 export function AppHeader() {
   const { user, signOut } = useAuth();
   const router = useRouter();
+  const { country, setCountry } = useCountry();
   const [notifications, setNotifications] = useState(true);
+  const [countryOpen, setCountryOpen] = useState(false);
 
   const photo =
     (user?.user_metadata?.avatar_url as string | undefined) ||
@@ -22,41 +32,55 @@ export function AppHeader() {
   const email = user?.email ?? "";
   const initial = (user?.user_metadata?.name || email || "?").trim().charAt(0).toUpperCase();
 
+  const navLinkClass =
+    "flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm text-muted-foreground hover:bg-white/60 hover:text-foreground transition";
+  const navLinkActive =
+    "flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm bg-white/70 text-foreground";
+
   return (
-    <header className="sticky top-0 z-40 px-4 pt-4">
-      <div className="glass-strong mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-full px-5 py-3">
+    <header className="sticky top-0 z-40 w-full overflow-x-hidden px-3 pt-3 sm:px-4 sm:pt-4">
+      <div className="glass-strong mx-auto grid w-full max-w-6xl grid-cols-[auto_1fr_auto] items-center gap-2 rounded-full px-3 py-2 sm:gap-3 sm:px-5 sm:py-3">
         {/* Left: logo */}
-        <Link to="/" className="flex items-center gap-2 justify-self-start font-display text-base font-semibold tracking-tight">
+        <Link
+          to="/"
+          className="flex min-w-0 items-center gap-2 justify-self-start font-display text-sm font-semibold tracking-tight sm:text-base"
+        >
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-gradient text-primary-foreground shadow-md">
             <Droplets className="h-4 w-4" />
           </span>
-          <span className="text-gradient">Price Tube</span>
+          <span className="text-gradient whitespace-nowrap">Price Tube</span>
         </Link>
 
         {/* Center: nav */}
-        <nav className="flex items-center gap-1 justify-self-center">
+        <nav className="flex items-center gap-0.5 justify-self-center sm:gap-1">
           <Link
             to="/search"
-            className="rounded-full px-3 py-1.5 text-xs sm:text-sm text-muted-foreground hover:bg-white/60 hover:text-foreground transition"
-            activeProps={{ className: "rounded-full px-3 py-1.5 text-xs sm:text-sm bg-white/70 text-foreground" }}
+            className={navLinkClass}
+            activeProps={{ className: navLinkActive }}
+            aria-label="Search"
           >
-            Search
+            <Search className="h-4 w-4 sm:hidden" />
+            <span className="hidden sm:inline">Search</span>
           </Link>
           {user && (
             <>
               <Link
                 to="/app"
-                className="rounded-full px-3 py-1.5 text-xs sm:text-sm text-muted-foreground hover:bg-white/60 hover:text-foreground transition"
-                activeProps={{ className: "rounded-full px-3 py-1.5 text-xs sm:text-sm bg-white/70 text-foreground" }}
+                className={navLinkClass}
+                activeProps={{ className: navLinkActive }}
+                aria-label="Dashboard"
               >
-                Dashboard
+                <LayoutGrid className="h-4 w-4 sm:hidden" />
+                <span className="hidden sm:inline">Dashboard</span>
               </Link>
               <Link
                 to="/app/wishlist"
-                className="rounded-full px-3 py-1.5 text-xs sm:text-sm text-muted-foreground hover:bg-white/60 hover:text-foreground transition"
-                activeProps={{ className: "rounded-full px-3 py-1.5 text-xs sm:text-sm bg-white/70 text-foreground" }}
+                className={navLinkClass}
+                activeProps={{ className: navLinkActive }}
+                aria-label="Wishlist"
               >
-                Wishlist
+                <Heart className="h-4 w-4 sm:hidden" />
+                <span className="hidden sm:inline">Wishlist</span>
               </Link>
             </>
           )}
@@ -68,7 +92,7 @@ export function AppHeader() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-brand-gradient text-xs font-semibold text-primary-foreground shadow-md ring-2 ring-white/70 transition hover:scale-105"
+                  className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-brand-gradient text-xs font-semibold text-primary-foreground shadow-md ring-2 ring-white/70 transition hover:scale-105"
                   aria-label="Open profile menu"
                 >
                   {photo ? (
@@ -81,7 +105,7 @@ export function AppHeader() {
               <DropdownMenuContent
                 align="end"
                 sideOffset={10}
-                className="glass-strong w-64 rounded-2xl border-white/40 p-2"
+                className="glass-strong w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl border-white/40 p-2"
               >
                 <div className="flex items-center gap-3 rounded-xl glass-inset px-3 py-2.5">
                   <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-brand-gradient text-sm font-semibold text-primary-foreground">
@@ -98,6 +122,20 @@ export function AppHeader() {
                 </div>
 
                 <DropdownMenuSeparator className="my-2 bg-white/50" />
+
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setCountryOpen(true);
+                  }}
+                  className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm focus:bg-white/70"
+                >
+                  <span className="flex min-w-0 items-center">
+                    <Globe className="mr-2 h-4 w-4 shrink-0 text-[var(--primary)]" />
+                    Country
+                  </span>
+                  <span className="truncate text-xs text-muted-foreground">{country ?? "Not set"}</span>
+                </DropdownMenuItem>
 
                 <DropdownMenuItem className="rounded-lg px-3 py-2 text-sm focus:bg-white/70">
                   <Settings className="mr-2 h-4 w-4 text-[var(--primary)]" />
@@ -147,13 +185,57 @@ export function AppHeader() {
           ) : (
             <Link
               to="/login"
-              className="flex items-center gap-1.5 rounded-full bg-brand-gradient px-4 py-1.5 text-xs font-medium text-primary-foreground shadow-md hover:shadow-lg transition"
+              className="flex items-center gap-1.5 rounded-full bg-brand-gradient px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-md hover:shadow-lg transition sm:px-4"
             >
-              <Sparkles className="h-3.5 w-3.5" /> Sign in
+              <Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Sign in</span>
             </Link>
           )}
         </div>
       </div>
+
+      <Dialog open={countryOpen} onOpenChange={setCountryOpen}>
+        <DialogContent className="glass-strong w-[calc(100vw-1.5rem)] max-w-md overflow-x-hidden rounded-3xl border-white/40 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Country preference</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              We'll tailor product searches to retailers in your country.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] space-y-1 overflow-y-auto pr-1">
+            {COUNTRIES.map((c) => {
+              const selected = country === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={async () => {
+                    await setCountry(c);
+                    setCountryOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm transition ${
+                    selected ? "bg-brand-gradient text-primary-foreground" : "glass-inset hover:bg-white/70"
+                  }`}
+                >
+                  <span className="truncate">{c}</span>
+                  {selected && <Check className="h-4 w-4 shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+          {country && (
+            <button
+              type="button"
+              onClick={async () => {
+                await setCountry(null);
+                setCountryOpen(false);
+              }}
+              className="mt-2 rounded-xl glass-inset px-3 py-2 text-xs text-muted-foreground hover:text-foreground"
+            >
+              Clear country preference
+            </button>
+          )}
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

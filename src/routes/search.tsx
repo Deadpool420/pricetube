@@ -7,6 +7,7 @@ import { Loader2, Search, Package, Check, Sparkles, X } from "lucide-react";
 import { searchProductOffers } from "@/lib/product-search.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useCountry } from "@/hooks/use-country";
 import { AppHeader } from "@/components/app-header";
 import { formatPrice } from "@/routes/app.index";
 
@@ -49,6 +50,7 @@ type Offer = {
 
 function SearchPage() {
   const { user } = useAuth();
+  const { country } = useCountry();
   const navigate = useNavigate();
   const { q } = Route.useSearch();
   const search = useServerFn(searchProductOffers);
@@ -66,7 +68,8 @@ function SearchPage() {
     setOffers(null);
     setSelected(new Set());
     try {
-      const r = await search({ data: { query: term.trim() } });
+      const finalQuery = country ? `${term.trim()} ${country}` : term.trim();
+      const r = await search({ data: { query: finalQuery } });
       if (!r.ok) {
         toast.error(r.error);
         return;
