@@ -128,13 +128,21 @@ function ProductDetail() {
   };
 
   const runEditSearch = async () => {
-    const term = editQuery.trim();
-    if (term.length < 2) return;
+    const store = editQuery.trim();
+    if (store.length < 2 || !data?.product) return;
+    const term = `${data.product.name} ${store}`.trim();
     setEditSearching(true);
     try {
       const r = await searchOffers({ data: { query: term } });
-      if (r.ok) setEditResults(r.offers);
-      else toast.error(r.error ?? "Search failed");
+      if (r.ok) {
+        // Sort: priced offers first (cheapest first), unknown prices last
+        const sorted = [...r.offers].sort((a, b) => {
+          const ap = typeof a.price === "number" && a.price > 0 ? a.price : Number.POSITIVE_INFINITY;
+          const bp = typeof b.price === "number" && b.price > 0 ? b.price : Number.POSITIVE_INFINITY;
+          return ap - bp;
+        });
+        setEditResults(sorted);
+      } else toast.error(r.error ?? "Search failed");
     } catch (err: any) {
       toast.error(err?.message ?? "Search failed");
     } finally {
