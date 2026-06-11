@@ -48,7 +48,7 @@ export function AppHeader() {
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-gradient text-primary-foreground shadow-md">
             <Droplets className="h-4 w-4" />
           </span>
-          <span className="text-gradient whitespace-nowrap hidden xs:inline sm:inline">Price Tube</span>
+          <span className="text-gradient whitespace-nowrap">Price Tube</span>
         </Link>
 
         {/* Center: nav */}
