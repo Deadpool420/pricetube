@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { Plus, Package, TrendingDown, Heart, ArrowDown, ArrowUp, Clock, Search } from "lucide-react";
+import { Package, TrendingDown, Heart, ArrowDown, ArrowUp, Clock, Search, RefreshCw, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { refreshUserPrices } from "@/lib/price-refresh.functions";
