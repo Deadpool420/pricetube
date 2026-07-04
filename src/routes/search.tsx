@@ -181,14 +181,16 @@ function SearchPage() {
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <main className="mx-auto max-w-3xl px-4 py-6 md:py-10">
-        <div className="glass-strong rounded-3xl p-4 sm:p-6 md:p-8">
+      <main className="page-enter mx-auto max-w-3xl px-4 py-6 md:py-10">
+        <div className="glass-strong rounded-3xl p-5 sm:p-6">
           <h1 className="font-display text-xl font-bold tracking-tight sm:text-2xl md:text-3xl">
             Search any product
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            We'll scan major retailers and line up the prices. No sign-up needed to look.
+          <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+            We'll scan major retailers and line up the prices.
           </p>
+
+
 
 
           <form onSubmit={handleSearch} className="mt-6 flex gap-2">
