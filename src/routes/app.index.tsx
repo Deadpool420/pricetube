@@ -296,7 +296,11 @@ function ProductCard({
                 </span>
               )}
             </div>
-            <div className="font-display text-2xl font-bold text-gradient break-words">
+            <div
+              className={`font-display font-bold text-gradient overflow-hidden text-ellipsis whitespace-nowrap ${
+                lowest !== null && formatPrice(lowest, currency).length > 10 ? "text-xl" : "text-2xl"
+              }`}
+            >
               {lowest !== null ? formatPrice(lowest, currency) : <span className="text-base font-semibold text-muted-foreground">Price unavailable</span>}
             </div>
           </div>
@@ -304,7 +308,8 @@ function ProductCard({
           {lowestSource && (
             <div className="flex shrink-0 items-center gap-1 rounded-full glass-inset px-2 py-1 text-xs font-medium text-[var(--primary)]">
               <TrendingDown className="h-3 w-3" />
-              <span className="max-w-[80px] truncate">{lowestSource.site_name}</span>
+              <span className="max-w-[60px] sm:max-w-[80px] truncate">{lowestSource.site_name}</span>
+
             </div>
           )}
         </div>
