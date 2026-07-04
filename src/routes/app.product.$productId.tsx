@@ -326,8 +326,8 @@ function ProductDetail() {
 
       {chartData.length > 1 && (
         <>
-          <h2 className="mt-8 mb-3 font-display text-lg font-semibold">Price history</h2>
-          <div className="glass rounded-3xl p-5">
+          <h2 className="mt-8 mb-3 px-1 font-display text-lg font-semibold">Price over time</h2>
+          <div className="glass rounded-3xl p-5 overflow-x-hidden">
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
@@ -353,25 +353,42 @@ function ProductDetail() {
                     fontSize={11}
                     tickLine={false}
                     axisLine={false}
-                    width={44}
-                    tickFormatter={(v) => formatPrice(Number(v), currency)}
+                    width={72}
+                    tickFormatter={(v) => {
+                      const n = Number(v);
+                      if (n > 99999) return `${Math.round(n / 1000)}K`;
+                      return formatPrice(n, currency);
+                    }}
                     domain={["auto", "auto"]}
                   />
                   <Tooltip
-                    cursor={{ stroke: "oklch(0.7 0.02 240)", strokeWidth: 1, strokeDasharray: "3 3" }}
+                    cursor={{ stroke: "var(--primary)", strokeWidth: 1.5 }}
                     content={({ active, payload, label }) => {
                       if (!active || !payload || !payload.length) return null;
-                      const sorted = [...payload]
-                        .filter((p) => typeof p.value === "number")
-                        .sort((a, b) => (b.value as number) - (a.value as number));
+                      // Dedupe by name, keeping highest-priced entry.
+                      const byName = new Map<string, { value: number; color: string; count: number }>();
+                      for (const p of payload) {
+                        if (typeof p.value !== "number") continue;
+                        const name = String(p.name);
+                        const existing = byName.get(name);
+                        if (!existing) byName.set(name, { value: p.value, color: p.color as string, count: 1 });
+                        else {
+                          existing.count += 1;
+                          if (p.value > existing.value) existing.value = p.value;
+                        }
+                      }
+                      const sorted = Array.from(byName.entries()).sort((a, b) => b[1].value - a[1].value);
                       return (
                         <div className="rounded-xl border border-white/60 bg-white/95 px-3 py-2 text-xs shadow-lg backdrop-blur-xl">
                           <div className="mb-1 font-medium text-muted-foreground">{label}</div>
-                          {sorted.map((p) => (
-                            <div key={String(p.dataKey)} className="flex items-center gap-2">
-                              <span className="h-2 w-2 rounded-full" style={{ background: p.color }} />
-                              <span className="text-foreground">{p.name}</span>
-                              <span className="ml-auto font-semibold">{formatPrice(p.value as number, currency)}</span>
+                          {sorted.map(([name, v]) => (
+                            <div key={name} className="flex items-center gap-2">
+                              <span className="h-2 w-2 rounded-full" style={{ background: v.color }} />
+                              <span className="text-foreground">
+                                {name}
+                                {v.count > 1 && <span className="ml-1 text-muted-foreground">({v.count} listings)</span>}
+                              </span>
+                              <span className="ml-auto font-semibold">{formatPrice(v.value, currency)}</span>
                             </div>
                           ))}
                         </div>
@@ -386,13 +403,15 @@ function ProductDetail() {
                       stroke={`var(--chart-${(i % 5) + 1})`}
                       strokeWidth={2}
                       fill={`url(#pt-grad-${s.id})`}
-                      activeDot={{ r: 4, strokeWidth: 2, stroke: "oklch(1 0 0)" }}
+                      activeDot={{ r: 5, strokeWidth: 2, stroke: "white" }}
                       dot={false}
                       connectNulls
+                      animationDuration={300}
                     />
                   ))}
                 </AreaChart>
               </ResponsiveContainer>
+
             </div>
           </div>
         </>
