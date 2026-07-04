@@ -46,6 +46,7 @@ type Offer = {
   imageUrl: string | null;
   siteName: string;
   description: string | null;
+  suspiciousPrice?: boolean;
 };
 
 function SearchPage() {
