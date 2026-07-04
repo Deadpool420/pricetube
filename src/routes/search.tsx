@@ -350,7 +350,7 @@ function SearchPage() {
               Create a free account to save this
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Sign up in 30 seconds to track {selected.size === 1 ? "this offer" : `these ${selected.size} offers`} and watch the price history. No credit card.
+              Sign up in 30 seconds to track {selected.size === 1 ? "this offer" : `these ${selected.size} offers`} and watch the price history.
             </p>
             <div className="mt-5 flex flex-col gap-2">
               <a
