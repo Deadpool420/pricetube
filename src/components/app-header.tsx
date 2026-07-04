@@ -1,5 +1,5 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { Droplets, LogOut, Sparkles, Settings, Bell, Search, LayoutGrid, Heart, Globe, Check } from "lucide-react";
+import { Droplets, LogOut, Sparkles, Settings, Bell, LayoutGrid, Heart, Globe, Check } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useCountry, COUNTRIES } from "@/hooks/use-country";
@@ -33,9 +33,9 @@ export function AppHeader() {
   const initial = (user?.user_metadata?.name || email || "?").trim().charAt(0).toUpperCase();
 
   const navLinkClass =
-    "flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm text-muted-foreground hover:bg-white/60 hover:text-foreground transition";
+    "relative flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm text-muted-foreground hover:bg-white/60 hover:text-foreground transition";
   const navLinkActive =
-    "flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm bg-white/70 text-foreground";
+    "relative flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm bg-white/70 text-[var(--primary)] shadow-sm after:absolute after:left-1/2 after:-bottom-1 after:-translate-x-1/2 after:h-[3px] after:w-[3px] after:rounded-full after:bg-[var(--primary)]";
 
   return (
     <header className="sticky top-0 z-40 w-full overflow-x-hidden px-3 pt-3 sm:px-4 sm:pt-4">
@@ -48,20 +48,11 @@ export function AppHeader() {
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-gradient text-primary-foreground shadow-md">
             <Droplets className="h-4 w-4" />
           </span>
-          <span className="text-gradient whitespace-nowrap">Price Tube</span>
+          <span className="text-gradient whitespace-nowrap hidden min-[360px]:inline">Price Tube</span>
         </Link>
 
         {/* Center: nav */}
         <nav className="flex items-center gap-0.5 justify-self-center sm:gap-1">
-          <Link
-            to="/search"
-            className={navLinkClass}
-            activeProps={{ className: navLinkActive }}
-            aria-label="Search"
-          >
-            <Search className="h-4 w-4 sm:hidden" />
-            <span className="hidden sm:inline">Search</span>
-          </Link>
           {user && (
             <>
               <Link
@@ -85,6 +76,7 @@ export function AppHeader() {
             </>
           )}
         </nav>
+
 
         {/* Right: profile */}
         <div className="flex items-center gap-2 justify-self-end">

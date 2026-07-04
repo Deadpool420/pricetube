@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { Plus, Package, TrendingDown, Heart, ArrowDown, ArrowUp, Clock, Search } from "lucide-react";
+import { Package, TrendingDown, Heart, ArrowDown, ArrowUp, Clock, Search, RefreshCw, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { refreshUserPrices } from "@/lib/price-refresh.functions";
@@ -98,24 +98,16 @@ function Dashboard() {
   };
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8 md:py-10">
-      <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">Your tracker</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {products?.length ?? 0} {products?.length === 1 ? "product" : "products"} watched
-            {lastRefreshLabel ? <span className="text-muted-foreground/80"> · Last updated {lastRefreshLabel}</span> : null}
-          </p>
-        </div>
-        <Link
-          to="/app/add"
-          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand-gradient px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md hover:shadow-lg transition"
-        >
-          <Plus className="h-4 w-4" /> Track product
-        </Link>
+    <main className="page-enter mx-auto max-w-6xl px-4 py-8 md:py-10">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">Your tracker</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {products?.length ?? 0} {products?.length === 1 ? "product" : "products"} watched
+          {lastRefreshLabel ? <span className="text-muted-foreground/80"> · Last updated {lastRefreshLabel}</span> : null}
+        </p>
       </div>
 
-      {/* Search shortcut */}
+      {/* Search shortcut — single entry point for tracking */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -127,19 +119,19 @@ function Dashboard() {
       >
         <div className="glass-strong rounded-2xl p-2">
           <div className="flex items-center gap-2 rounded-xl glass-inset px-3 py-2.5">
-            <Search className="h-4 w-4 text-muted-foreground" />
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <input
               type="text"
               aria-label="Search for a new product"
-              placeholder="Search any product to track…"
+              placeholder="Search a product to start tracking…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
             <button
               type="submit"
               disabled={q.trim().length < 2}
-              className="rounded-full bg-brand-gradient px-4 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:shadow disabled:opacity-50"
+              className="shrink-0 rounded-full bg-brand-gradient px-4 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:shadow disabled:opacity-50"
             >
               Search
             </button>
@@ -164,15 +156,43 @@ function Dashboard() {
       ) : !products || products.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((p) => (
-            <ProductCard key={p.id} product={p} onToggleWishlist={toggleWishlist} />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {products.map((p) => (
+              <ProductCard key={p.id} product={p} onToggleWishlist={toggleWishlist} />
+            ))}
+          </div>
+          {products.length < 4 && <TipsSection />}
+        </>
       )}
     </main>
   );
 }
+
+function TipsSection() {
+  const tips = [
+    { icon: Search, title: "Be specific", body: "Search by exact model name for the sharpest matches." },
+    { icon: RefreshCw, title: "Refresh anytime", body: "Hit refresh on a product page to pull the latest prices." },
+    { icon: TrendingDown, title: "Compare stores", body: "Add more sources to spot the cheapest one over time." },
+  ];
+  return (
+    <section className="mt-10">
+      <h2 className="mb-3 px-1 font-display text-lg font-semibold">Quick tips</h2>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {tips.map((t) => (
+          <div key={t.title} className="glass rounded-2xl p-5">
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-brand-gradient text-primary-foreground shadow-sm">
+              <t.icon className="h-4 w-4" />
+            </div>
+            <div className="mt-3 font-display text-sm font-semibold">{t.title}</div>
+            <div className="mt-1 text-xs text-muted-foreground">{t.body}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 
 function ProductCard({
   product,
@@ -276,7 +296,11 @@ function ProductCard({
                 </span>
               )}
             </div>
-            <div className="font-display text-2xl font-bold text-gradient break-words">
+            <div
+              className={`font-display font-bold text-gradient overflow-hidden text-ellipsis whitespace-nowrap ${
+                lowest !== null && formatPrice(lowest, currency).length > 10 ? "text-xl" : "text-2xl"
+              }`}
+            >
               {lowest !== null ? formatPrice(lowest, currency) : <span className="text-base font-semibold text-muted-foreground">Price unavailable</span>}
             </div>
           </div>
@@ -284,7 +308,8 @@ function ProductCard({
           {lowestSource && (
             <div className="flex shrink-0 items-center gap-1 rounded-full glass-inset px-2 py-1 text-xs font-medium text-[var(--primary)]">
               <TrendingDown className="h-3 w-3" />
-              <span className="max-w-[80px] truncate">{lowestSource.site_name}</span>
+              <span className="max-w-[60px] sm:max-w-[80px] truncate">{lowestSource.site_name}</span>
+
             </div>
           )}
         </div>

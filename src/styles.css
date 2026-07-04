@@ -172,3 +172,12 @@
     background: linear-gradient(135deg, #1259C3, #4EADFF);
   }
 }
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-enter { animation: page-enter 200ms ease-out both; }
+
+html, body { overflow-x: hidden; }
+

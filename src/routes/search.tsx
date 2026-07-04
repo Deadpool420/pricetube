@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Loader2, Search, Package, Check, Sparkles, X } from "lucide-react";
+import { Loader2, Search, Package, Check, Sparkles, X, AlertTriangle } from "lucide-react";
 import { searchProductOffers } from "@/lib/product-search.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -46,6 +46,7 @@ type Offer = {
   imageUrl: string | null;
   siteName: string;
   description: string | null;
+  suspiciousPrice?: boolean;
 };
 
 function SearchPage() {
@@ -181,14 +182,16 @@ function SearchPage() {
   return (
     <div className="min-h-screen">
       <AppHeader />
-      <main className="mx-auto max-w-3xl px-4 py-6 md:py-10">
-        <div className="glass-strong rounded-3xl p-4 sm:p-6 md:p-8">
+      <main className="page-enter mx-auto max-w-3xl px-4 py-6 md:py-10">
+        <div className="glass-strong rounded-3xl p-5 sm:p-6">
           <h1 className="font-display text-xl font-bold tracking-tight sm:text-2xl md:text-3xl">
             Search any product
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            We'll scan major retailers and line up the prices. No sign-up needed to look.
+          <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+            We'll scan major retailers and line up the prices.
           </p>
+
+
 
 
           <form onSubmit={handleSearch} className="mt-6 flex gap-2">
@@ -275,6 +278,11 @@ function SearchPage() {
                         <div className="font-display text-lg font-bold">
                           {o.price !== null ? formatPrice(o.price, o.currency) : "—"}
                         </div>
+                        {o.suspiciousPrice && (
+                          <div className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                            <AlertTriangle className="h-3 w-3" /> Price may be inaccurate
+                          </div>
+                        )}
                         <div
                           className={`grid h-7 w-7 place-items-center rounded-full border transition ${
                             isSelected
@@ -342,7 +350,7 @@ function SearchPage() {
               Create a free account to save this
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Sign up in 30 seconds to track {selected.size === 1 ? "this offer" : `these ${selected.size} offers`} and watch the price history. No credit card.
+              Sign up in 30 seconds to track {selected.size === 1 ? "this offer" : `these ${selected.size} offers`} and watch the price history.
             </p>
             <div className="mt-5 flex flex-col gap-2">
               <a
