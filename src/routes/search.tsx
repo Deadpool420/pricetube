@@ -278,6 +278,11 @@ function SearchPage() {
                         <div className="font-display text-lg font-bold">
                           {o.price !== null ? formatPrice(o.price, o.currency) : "—"}
                         </div>
+                        {o.suspiciousPrice && (
+                          <div className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                            <AlertTriangle className="h-3 w-3" /> Price may be inaccurate
+                          </div>
+                        )}
                         <div
                           className={`grid h-7 w-7 place-items-center rounded-full border transition ${
                             isSelected
