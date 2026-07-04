@@ -210,45 +210,63 @@ function ProductDetail() {
   const chartData = buildChartData(data.history, data.sources);
 
   return (
-    <main className="mx-auto w-full max-w-4xl overflow-x-hidden px-4 py-10">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-        <Link to="/app" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+    <main className="page-enter mx-auto w-full max-w-4xl overflow-x-hidden px-4 py-10">
+      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <Link to="/app" className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleWishlist}
-            className={`grid h-10 w-10 place-items-center rounded-full glass-inset transition ${data.wished ? "text-destructive" : "text-muted-foreground"}`}
-            aria-label="Toggle wishlist"
-          >
-            <Heart className={`h-4 w-4 ${data.wished ? "fill-current" : ""}`} />
-          </button>
-          <button
-            onClick={refresh}
-            disabled={refreshing}
-            className="flex items-center gap-1.5 rounded-full glass-inset px-4 py-2 text-xs font-medium hover:bg-white/80 transition disabled:opacity-60"
-          >
-            {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-            Refresh
-          </button>
-          <button
-            onClick={() => setEditOpen(true)}
-            className="flex items-center gap-1.5 rounded-full glass-inset px-4 py-2 text-xs font-medium hover:bg-white/80 transition"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            Edit sources
-          </button>
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="grid h-10 w-10 place-items-center rounded-full glass-inset text-muted-foreground hover:text-destructive transition"
-            aria-label="Delete"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
+        <TooltipProvider delayDuration={200}>
+          <div className="flex items-center gap-3">
+            {[
+              {
+                key: "wish",
+                label: data.wished ? "Remove from wishlist" : "Add to wishlist",
+                onClick: toggleWishlist,
+                icon: <Heart className={`h-4 w-4 ${data.wished ? "fill-current" : ""}`} />,
+                className: data.wished ? "text-destructive" : "text-muted-foreground",
+              },
+              {
+                key: "refresh",
+                label: "Refresh prices",
+                onClick: refresh,
+                disabled: refreshing,
+                icon: refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />,
+                className: "text-muted-foreground",
+              },
+              {
+                key: "edit",
+                label: "Edit sources",
+                onClick: () => setEditOpen(true),
+                icon: <Pencil className="h-4 w-4" />,
+                className: "text-muted-foreground",
+              },
+              {
+                key: "delete",
+                label: "Delete product",
+                onClick: () => setConfirmDelete(true),
+                icon: <Trash2 className="h-4 w-4" />,
+                className: "text-muted-foreground hover:text-destructive",
+              },
+            ].map((btn) => (
+              <UITooltip key={btn.key}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={btn.onClick}
+                    disabled={btn.disabled}
+                    aria-label={btn.label}
+                    className={`grid h-11 w-11 place-items-center rounded-full glass-inset transition disabled:opacity-60 ${btn.className}`}
+                  >
+                    {btn.icon}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{btn.label}</TooltipContent>
+              </UITooltip>
+            ))}
+          </div>
+        </TooltipProvider>
       </div>
 
-      <div className="glass-strong rounded-3xl p-6 md:p-8">
+      <div className="glass-strong rounded-3xl p-5 sm:p-6">
         <div className="flex items-start gap-5">
           {data.product.image_url && (
             <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/70 p-2 shadow-md">
@@ -267,23 +285,29 @@ function ProductDetail() {
         </div>
       </div>
 
-      <h2 className="mt-8 mb-3 font-display text-lg font-semibold">Compare sources</h2>
+      <h2 className="mt-8 mb-3 px-1 font-display text-lg font-semibold">Prices right now</h2>
       <div className="grid gap-3 md:grid-cols-2">
         {data.sources.map((s) => {
           const isLowest = s.current_price === lowest;
+          const suspicious = (s as unknown as { suspicious_price?: boolean }).suspicious_price === true;
           return (
             <div
               key={s.id}
-              className={`glass glass-hover overflow-hidden rounded-2xl p-4 sm:p-5 ${isLowest ? "ring-2 ring-[var(--success)]/60" : ""}`}
+              className={`glass glass-hover min-w-0 overflow-hidden rounded-2xl p-5 sm:p-6 ${isLowest ? "ring-2 ring-[var(--success)]/60" : ""}`}
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-xs uppercase tracking-wide text-muted-foreground">{s.site_name}</div>
-                  <div className="mt-1 font-display text-xl font-bold break-words sm:text-2xl">
+                  <div className="mt-1 min-w-0 font-display text-xl font-bold break-words sm:text-2xl">
                     {typeof s.current_price === "number" && s.current_price > 0
                       ? formatPrice(s.current_price, s.currency ?? "USD")
                       : <span className="text-sm font-medium text-muted-foreground">Price unavailable</span>}
                   </div>
+                  {suspicious && (
+                    <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                      <AlertTriangle className="h-3 w-3" /> Price may be inaccurate
+                    </div>
+                  )}
                 </div>
                 <a
                   href={/^https?:\/\//i.test(s.url) ? s.url : "#"}
@@ -298,6 +322,7 @@ function ProductDetail() {
           );
         })}
       </div>
+
 
       {chartData.length > 1 && (
         <>
