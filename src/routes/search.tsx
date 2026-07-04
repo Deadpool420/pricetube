@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Loader2, Search, Package, Check, Sparkles, X } from "lucide-react";
+import { Loader2, Search, Package, Check, Sparkles, X, AlertTriangle } from "lucide-react";
 import { searchProductOffers } from "@/lib/product-search.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
