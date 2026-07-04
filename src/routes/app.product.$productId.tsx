@@ -3,8 +3,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, ExternalLink, Heart, Loader2, RefreshCw, Trash2, Pencil, Plus, Search } from "lucide-react";
+import { ArrowLeft, ExternalLink, Heart, Loader2, RefreshCw, Trash2, Pencil, Plus, Search, AlertTriangle } from "lucide-react";
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
