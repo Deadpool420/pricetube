@@ -214,57 +214,67 @@ function ProductDetail() {
 
   return (
     <main className="page-enter mx-auto w-full max-w-4xl overflow-x-hidden px-4 py-10">
-      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <Link to="/app" className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> Back
+      <div className="mb-6 flex items-center justify-between gap-2">
+        <Link
+          to="/app"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full glass-inset text-muted-foreground hover:text-foreground transition active:scale-95"
+          aria-label="Back to dashboard"
+        >
+          <ArrowLeft className="h-4 w-4" />
         </Link>
         <TooltipProvider delayDuration={200}>
-          <div className="flex items-center gap-3">
-            {[
-              {
-                key: "wish",
-                label: data.wished ? "Remove from wishlist" : "Add to wishlist",
-                onClick: toggleWishlist,
-                icon: <Heart className={`h-4 w-4 ${data.wished ? "fill-current" : ""}`} />,
-                className: data.wished ? "text-destructive" : "text-muted-foreground",
-              },
-              {
-                key: "refresh",
-                label: "Refresh prices",
-                onClick: refresh,
-                disabled: refreshing,
-                icon: refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />,
-                className: "text-muted-foreground",
-              },
-              {
-                key: "edit",
-                label: "Edit sources",
-                onClick: () => setEditOpen(true),
-                icon: <Pencil className="h-4 w-4" />,
-                className: "text-muted-foreground",
-              },
-              {
-                key: "delete",
-                label: "Delete product",
-                onClick: () => setConfirmDelete(true),
-                icon: <Trash2 className="h-4 w-4" />,
-                className: "text-muted-foreground hover:text-destructive",
-              },
-            ].map((btn) => (
-              <UITooltip key={btn.key}>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={btn.onClick}
-                    disabled={btn.disabled}
-                    aria-label={btn.label}
-                    className={`grid h-11 w-11 place-items-center rounded-full glass-inset transition disabled:opacity-60 ${btn.className}`}
-                  >
-                    {btn.icon}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>{btn.label}</TooltipContent>
-              </UITooltip>
-            ))}
+          <div className="flex items-center gap-2">
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={toggleWishlist}
+                  className={`grid h-10 w-10 shrink-0 place-items-center rounded-full glass-inset transition active:scale-95 ${
+                    data.wished ? "text-destructive" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  aria-label={data.wished ? "Remove from wishlist" : "Add to wishlist"}
+                >
+                  <Heart className={`h-4 w-4 ${data.wished ? "fill-current" : ""}`} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{data.wished ? "Remove from wishlist" : "Add to wishlist"}</TooltipContent>
+            </UITooltip>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={refresh}
+                  disabled={refreshing}
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full glass-inset text-muted-foreground hover:text-foreground transition active:scale-95 disabled:opacity-50"
+                  aria-label="Refresh prices"
+                >
+                  {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Refresh prices</TooltipContent>
+            </UITooltip>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setEditOpen(true)}
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full glass-inset text-muted-foreground hover:text-foreground transition active:scale-95"
+                  aria-label="Edit sources"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Edit sources</TooltipContent>
+            </UITooltip>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full glass-inset text-muted-foreground hover:text-destructive transition active:scale-95"
+                  aria-label="Delete product"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Delete product</TooltipContent>
+            </UITooltip>
           </div>
         </TooltipProvider>
       </div>
