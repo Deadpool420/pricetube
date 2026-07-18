@@ -204,7 +204,10 @@ function ProductDetail() {
     .map((s) => s.current_price)
     .filter((p): p is number => typeof p === "number" && p > 0);
   const lowest = prices.length ? Math.min(...prices) : null;
-  const currency = data.sources[0]?.currency ?? "USD";
+  const currency =
+    data.sources.find((s) => s.currency && s.currency !== "USD")?.currency ??
+    data.sources[0]?.currency ??
+    "BDT";
 
   // Build chart data: pivot history by recorded date per source
   const chartData = buildChartData(data.history, data.sources);
