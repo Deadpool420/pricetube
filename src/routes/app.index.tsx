@@ -206,7 +206,9 @@ function ProductCard({
     .filter((p): p is number => typeof p === "number" && p > 0);
   const lowest = prices.length ? Math.min(...prices) : null;
   const lowestSource = product.product_sources.find((s) => s.current_price === lowest);
-  const currency = lowestSource?.currency ?? "USD";
+  const currency = lowestSource?.currency && lowestSource.currency !== "USD"
+    ? lowestSource.currency
+    : "BDT";
   const wished = (product.wishlist?.length ?? 0) > 0;
 
   let trend: "down" | "up" | null = null;

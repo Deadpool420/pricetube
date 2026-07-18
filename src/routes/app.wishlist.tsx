@@ -56,9 +56,12 @@ function Wishlist() {
               if (!p) return null;
               const prices = (p.product_sources ?? [])
                 .map((s: any) => s.current_price)
-                .filter((v: any): v is number => typeof v === "number");
+                .filter((v: any): v is number => typeof v === "number" && v > 0);
               const lowest = prices.length ? Math.min(...prices) : null;
-              const currency = p.product_sources?.[0]?.currency ?? "USD";
+              const currency =
+                (p.product_sources ?? []).find((s: any) => s.currency && s.currency !== "USD")?.currency ??
+                p.product_sources?.[0]?.currency ??
+                "BDT";
               return (
                 <Link
                   key={p.id}

@@ -1,5 +1,5 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { Droplets, LogOut, Sparkles, Settings, Bell, LayoutGrid, Heart, Globe, Check } from "lucide-react";
+import { LogOut, Sparkles, Settings, Bell, LayoutGrid, Heart, Globe, Check } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useCountry, COUNTRIES } from "@/hooks/use-country";
@@ -35,7 +35,7 @@ export function AppHeader() {
   const navLinkClass =
     "relative flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm text-muted-foreground hover:bg-white/60 hover:text-foreground transition";
   const navLinkActive =
-    "relative flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm bg-white/70 text-[var(--primary)] shadow-sm after:absolute after:left-1/2 after:-bottom-1 after:-translate-x-1/2 after:h-[3px] after:w-[3px] after:rounded-full after:bg-[var(--primary)]";
+    "relative flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm bg-white/80 text-[var(--primary)] shadow-sm font-semibold";
 
   return (
     <header className="sticky top-0 z-40 w-full overflow-x-hidden px-3 pt-3 sm:px-4 sm:pt-4">
@@ -45,8 +45,8 @@ export function AppHeader() {
           to="/"
           className="flex min-w-0 items-center gap-2 justify-self-start font-display text-sm font-semibold tracking-tight sm:text-base"
         >
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-gradient text-primary-foreground shadow-md">
-            <Droplets className="h-4 w-4" />
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full overflow-hidden shadow-md">
+            <img src="/icon-192.png" alt="Price Tube" className="h-full w-full object-cover" />
           </span>
           <span className="text-gradient whitespace-nowrap hidden min-[360px]:inline">Price Tube</span>
         </Link>
