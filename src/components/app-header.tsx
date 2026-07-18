@@ -1,5 +1,5 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { Droplets, LogOut, Sparkles, Settings, Bell, LayoutGrid, Heart, Globe, Check } from "lucide-react";
+import { LogOut, Sparkles, Settings, Bell, LayoutGrid, Heart, Globe, Check } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useCountry, COUNTRIES } from "@/hooks/use-country";
