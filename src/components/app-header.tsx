@@ -35,7 +35,7 @@ export function AppHeader() {
   const navLinkClass =
     "relative flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm text-muted-foreground hover:bg-white/60 hover:text-foreground transition";
   const navLinkActive =
-    "relative flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm bg-white/70 text-[var(--primary)] shadow-sm after:absolute after:left-1/2 after:-bottom-1 after:-translate-x-1/2 after:h-[3px] after:w-[3px] after:rounded-full after:bg-[var(--primary)]";
+    "relative flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm bg-white/80 text-[var(--primary)] shadow-sm font-semibold";
 
   return (
     <header className="sticky top-0 z-40 w-full overflow-x-hidden px-3 pt-3 sm:px-4 sm:pt-4">
