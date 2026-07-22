@@ -130,13 +130,13 @@ function SearchPage() {
     if (picked.length === 0) return;
     setSaving(true);
     try {
-      const qWords = query.trim()
+      const qWords: string[] = query.trim()
         .toLowerCase()
         .split(/\s+/)
-        .filter((w) => w.length >= 3);
+        .filter((w: string) => w.length >= 3);
       const scored = picked.map((o) => ({
         offer: o,
-        score: qWords.filter((w) => o.title.toLowerCase().includes(w)).length,
+        score: qWords.filter((w: string) => o.title.toLowerCase().includes(w)).length,
       }));
       scored.sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
