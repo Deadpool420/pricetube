@@ -76,12 +76,29 @@ export const refreshUserPrices = createServerFn({ method: "POST" })
           .update({ current_price: r.price, currency: r.currency, last_checked_at: now })
           .eq("id", s.id);
 
-        await supabase.from("price_history").insert({
-          source_id: s.id,
-          user_id: userId,
-          price: r.price,
-          currency: r.currency,
-        });
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const { data: todayEntry } = await supabase
+          .from("price_history")
+          .select("id")
+          .eq("source_id", s.id)
+          .gte("recorded_at", todayStart.toISOString())
+          .maybeSingle();
+
+        if (!todayEntry) {
+          await supabase.from("price_history").insert({
+            source_id: s.id,
+            user_id: userId,
+            price: r.price,
+            currency: r.currency,
+          });
+        } else {
+          await supabase
+            .from("price_history")
+            .update({ price: r.price, currency: r.currency })
+            .eq("id", todayEntry.id);
+        }
 
         if (oldPrice !== null && r.price < oldPrice) {
           drops++;
