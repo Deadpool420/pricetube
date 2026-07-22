@@ -174,7 +174,7 @@ function detectCategory(query: string): {
     "cosrx", "innisfree", "skinfood", "some by mi",
   ];
   if (beautBrands.some((b) => q.includes(b))) {
-    return { category: "HEALTH_BEAUTY", queryEnhancement: "price Bangladesh buy skincare", maxTargeted: 5 };
+    return { category: "HEALTH_BEAUTY", queryEnhancement: "price Bangladesh buy skincare" };
   }
 
   const categories: Array<{
