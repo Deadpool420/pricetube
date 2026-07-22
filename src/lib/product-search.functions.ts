@@ -392,14 +392,12 @@ function detectCategory(query: string): {
     return {
       category: bestMatch.key,
       queryEnhancement: bestMatch.queryEnhancement,
-      maxTargeted: bestMatch.maxTargeted,
     };
   }
 
   return {
     category: "GENERAL",
     queryEnhancement: "price Bangladesh buy",
-    maxTargeted: 4,
   };
 }
 
