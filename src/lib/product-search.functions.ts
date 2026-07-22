@@ -152,7 +152,7 @@ function detectCategory(query: string): {
     "intel core", "amd ryzen",
   ];
   if (computerBrands.some((b) => q.includes(b))) {
-    return { category: "COMPUTERS", queryEnhancement: "price Bangladesh buy", maxTargeted: 6 };
+    return { category: "COMPUTERS", queryEnhancement: "price Bangladesh buy" };
   }
 
   const audioBrands = [
