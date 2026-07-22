@@ -141,7 +141,7 @@ function detectCategory(query: string): {
     "tecno", "infinix", "symphony", "walton mobile",
   ];
   if (smartphoneBrands.some((b) => q.includes(b))) {
-    return { category: "SMARTPHONES", queryEnhancement: "price Bangladesh buy official", maxTargeted: 8 };
+    return { category: "SMARTPHONES", queryEnhancement: "price Bangladesh buy official" };
   }
 
   const computerBrands = [
