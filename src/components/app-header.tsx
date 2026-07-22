@@ -59,6 +59,7 @@ export function AppHeader() {
                 to="/app"
                 className={navLinkClass}
                 activeProps={{ className: navLinkActive }}
+                activeOptions={{ exact: true }}
                 aria-label="Dashboard"
               >
                 <LayoutGrid className="h-4 w-4 sm:hidden" />
