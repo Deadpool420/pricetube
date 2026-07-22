@@ -45,7 +45,7 @@ export function AppHeader() {
           to="/"
           className="flex min-w-0 items-center gap-2 justify-self-start font-display text-sm font-semibold tracking-tight sm:text-base"
         >
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full overflow-hidden shadow-md">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl overflow-hidden shadow-md">
             <img src="/icon-192.png" alt="Price Tube" className="h-full w-full object-cover" />
           </span>
           <span className="text-gradient whitespace-nowrap hidden min-[360px]:inline">Price Tube</span>
@@ -59,6 +59,7 @@ export function AppHeader() {
                 to="/app"
                 className={navLinkClass}
                 activeProps={{ className: navLinkActive }}
+                activeOptions={{ exact: true }}
                 aria-label="Dashboard"
               >
                 <LayoutGrid className="h-4 w-4 sm:hidden" />

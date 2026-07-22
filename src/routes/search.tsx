@@ -130,8 +130,23 @@ function SearchPage() {
     if (picked.length === 0) return;
     setSaving(true);
     try {
-      const productName = picked[0].title || query.trim();
-      const imageUrl = picked.find((o) => o.imageUrl)?.imageUrl ?? null;
+      const qWords: string[] = query.trim()
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((w: string) => w.length >= 3);
+      const scored = picked.map((o) => ({
+        offer: o,
+        score: qWords.filter((w: string) => o.title.toLowerCase().includes(w)).length,
+      }));
+      scored.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        const aHasImg = a.offer.imageUrl ? 1 : 0;
+        const bHasImg = b.offer.imageUrl ? 1 : 0;
+        return bHasImg - aHasImg;
+      });
+      const bestRepresentative = scored[0]?.offer ?? picked[0];
+      const productName = bestRepresentative.title || query.trim();
+      const imageUrl = bestRepresentative.imageUrl ?? picked.find((o) => o.imageUrl)?.imageUrl ?? null;
 
       const { data: product, error: pErr } = await supabase
         .from("products")

@@ -131,7 +131,6 @@ const CATEGORY_RETAILERS: Record<string, string[]> = {
 function detectCategory(query: string): {
   category: keyof typeof CATEGORY_RETAILERS;
   queryEnhancement: string;
-  maxTargeted: number;
 } {
   const q = query.toLowerCase().trim();
 
@@ -142,7 +141,7 @@ function detectCategory(query: string): {
     "tecno", "infinix", "symphony", "walton mobile",
   ];
   if (smartphoneBrands.some((b) => q.includes(b))) {
-    return { category: "SMARTPHONES", queryEnhancement: "price Bangladesh buy official", maxTargeted: 8 };
+    return { category: "SMARTPHONES", queryEnhancement: "price Bangladesh buy official" };
   }
 
   const computerBrands = [
@@ -153,7 +152,7 @@ function detectCategory(query: string): {
     "intel core", "amd ryzen",
   ];
   if (computerBrands.some((b) => q.includes(b))) {
-    return { category: "COMPUTERS", queryEnhancement: "price Bangladesh buy", maxTargeted: 6 };
+    return { category: "COMPUTERS", queryEnhancement: "price Bangladesh buy" };
   }
 
   const audioBrands = [
@@ -163,7 +162,7 @@ function detectCategory(query: string): {
     "pixel buds", "nothing ear",
   ];
   if (audioBrands.some((b) => q.includes(b))) {
-    return { category: "AUDIO", queryEnhancement: "price Bangladesh", maxTargeted: 5 };
+    return { category: "AUDIO", queryEnhancement: "price Bangladesh" };
   }
 
   const beautBrands = [
@@ -175,7 +174,7 @@ function detectCategory(query: string): {
     "cosrx", "innisfree", "skinfood", "some by mi",
   ];
   if (beautBrands.some((b) => q.includes(b))) {
-    return { category: "HEALTH_BEAUTY", queryEnhancement: "price Bangladesh buy skincare", maxTargeted: 5 };
+    return { category: "HEALTH_BEAUTY", queryEnhancement: "price Bangladesh buy skincare" };
   }
 
   const categories: Array<{
@@ -393,14 +392,12 @@ function detectCategory(query: string): {
     return {
       category: bestMatch.key,
       queryEnhancement: bestMatch.queryEnhancement,
-      maxTargeted: bestMatch.maxTargeted,
     };
   }
 
   return {
     category: "GENERAL",
     queryEnhancement: "price Bangladesh buy",
-    maxTargeted: 4,
   };
 }
 
@@ -552,26 +549,31 @@ export const searchProductOffers = createServerFn({ method: "POST" })
       const detected = detectCategory(data.query);
       const categoryRetailers = CATEGORY_RETAILERS[detected.category];
 
-      const primaryQuery = `${data.query} ${detected.queryEnhancement}`;
-      const primary = await runFirecrawlSearch(apiKey, primaryQuery, 10);
+      const topRetailers = categoryRetailers
+        .slice(0, 5)
+        .map((d) => d.replace(/\.(com\.bd|com|co\.bd|bd)$/, ""))
+        .join(" OR ");
+
+      const primaryQuery = `"${data.query}" ${detected.queryEnhancement} ${topRetailers}`;
+
+      const primary = await runFirecrawlSearch(apiKey, primaryQuery, 8);
 
       const presentHosts = new Set(primary.map((o) => hostOf(o.url)));
-      const missingRetailers = categoryRetailers.filter(
-        (d) => !Array.from(presentHosts).some(
-          (h) => h === d || h.endsWith(`.${d}`)
-        ),
-      ).slice(0, detected.maxTargeted);
+      const topMissingRetailer = categoryRetailers.find(
+        (d) => !Array.from(presentHosts).some((h) => h === d || h.endsWith(`.${d}`)),
+      );
 
-      const targeted = (
-        await Promise.all(
-          missingRetailers.map((d) =>
-            runFirecrawlSearch(apiKey, `${data.query} site:${d}`, 2),
-          ),
-        )
-      ).flat();
+      let backup: Offer[] = [];
+      if (topMissingRetailer) {
+        backup = await runFirecrawlSearch(
+          apiKey,
+          `"${data.query}" site:${topMissingRetailer}`,
+          3,
+        );
+      }
 
       const byUrl = new Map<string, Offer>();
-      for (const o of [...primary, ...targeted]) {
+      for (const o of [...primary, ...backup]) {
         if (!byUrl.has(o.url)) byUrl.set(o.url, o);
       }
       let offers = Array.from(byUrl.values());
@@ -581,11 +583,73 @@ export const searchProductOffers = createServerFn({ method: "POST" })
         price: typeof o.price === "number" && o.price > 0 ? o.price : null,
       }));
 
+      offers = offers.filter((o) => o.currency !== "INR");
+
+      const NON_RETAILER_HOSTS = [
+        "bikroy.com",
+        "gsmarena.com",
+        "gsmarena.com.bd",
+        "kimovil.com",
+        "nanoreview.net",
+        "phonearena.com",
+        "gadgets360.com",
+        "91mobiles.com",
+        "amazon.in",
+        "flipkart.com",
+        "myntra.com",
+        "nykaa.com",
+        "tirabeauty.com",
+        "purplle.com",
+        "meesho.com",
+        "ajio.com",
+        "bigbasket.com",
+        "blinkit.com",
+        "swiggy.com",
+        "zomato.com",
+      ];
+      offers = offers.filter((o) => {
+        const h = hostOf(o.url);
+        return !NON_RETAILER_HOSTS.some((bad) => h === bad || h.endsWith(`.${bad}`));
+      });
+
+      const queryWords = data.query
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((w) => w.length >= 4);
+
+      if (queryWords.length > 0) {
+        offers = offers.filter((o) => {
+          const titleLower = o.title.toLowerCase();
+          return queryWords.some((w) => titleLower.includes(w));
+        });
+      }
+
+      const bySite = new Map<string, Offer>();
+      for (const o of offers) {
+        const siteKey = o.siteName.toLowerCase().trim();
+        if (!bySite.has(siteKey)) {
+          bySite.set(siteKey, o);
+        } else {
+          const existing = bySite.get(siteKey)!;
+          const scoreOffer = queryWords.filter((w) =>
+            o.title.toLowerCase().includes(w),
+          ).length;
+          const scoreExisting = queryWords.filter((w) =>
+            existing.title.toLowerCase().includes(w),
+          ).length;
+          if (
+            scoreOffer > scoreExisting ||
+            (scoreOffer === scoreExisting && o.price !== null && existing.price === null)
+          ) {
+            bySite.set(siteKey, o);
+          }
+        }
+      }
+      offers = Array.from(bySite.values());
+
       const isCategoryTrusted = (o: Offer) => {
         const h = hostOf(o.url);
-        return categoryRetailers.some(
-          (d) => h === d || h.endsWith(`.${d}`)
-        );
+        return categoryRetailers.some((d) => h === d || h.endsWith(`.${d}`));
       };
 
       const priceKey = (o: Offer) =>
