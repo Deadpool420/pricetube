@@ -306,8 +306,13 @@ function ProductDetail() {
           return (
             <div
               key={s.id}
-              className={`glass glass-hover min-w-0 overflow-hidden rounded-2xl p-5 sm:p-6 ${isLowest ? "ring-2 ring-[var(--success)]/60" : ""}`}
+              className={`glass glass-hover relative min-w-0 overflow-hidden rounded-2xl p-5 sm:p-6 ${isLowest ? "border-l-[3px] border-l-[var(--primary)]" : ""}`}
             >
+              {isLowest && (
+                <span className="absolute right-14 top-3 rounded-full bg-brand-gradient px-2 py-0.5 text-[10px] font-semibold text-primary-foreground leading-tight">
+                  Lowest
+                </span>
+              )}
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-xs uppercase tracking-wide text-muted-foreground">{s.site_name}</div>
