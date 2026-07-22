@@ -162,7 +162,7 @@ function detectCategory(query: string): {
     "pixel buds", "nothing ear",
   ];
   if (audioBrands.some((b) => q.includes(b))) {
-    return { category: "AUDIO", queryEnhancement: "price Bangladesh", maxTargeted: 5 };
+    return { category: "AUDIO", queryEnhancement: "price Bangladesh" };
   }
 
   const beautBrands = [
