@@ -131,7 +131,6 @@ const CATEGORY_RETAILERS: Record<string, string[]> = {
 function detectCategory(query: string): {
   category: keyof typeof CATEGORY_RETAILERS;
   queryEnhancement: string;
-  maxTargeted: number;
 } {
   const q = query.toLowerCase().trim();
 
