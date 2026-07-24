@@ -577,7 +577,8 @@ function buildChartData(history: any[], sources: any[]) {
     const label = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
     const row = byDate.get(label) ?? { label };
     const name = sourceById.get(h.source_id);
-    if (name) row[name] = Number(h.price);
+    const price = Number(h.price);
+    if (name) row[name] = price > 0 ? price : undefined;
     byDate.set(label, row);
   }
   return Array.from(byDate.values());
