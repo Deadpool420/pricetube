@@ -242,7 +242,7 @@ function SearchPage() {
               <div className="text-xs uppercase tracking-wide text-muted-foreground">
                 Found {offers.length} {offers.length === 1 ? "offer" : "offers"} · select what to track
               </div>
-              <div className="grid gap-3">
+              <div className="grid gap-3 overflow-hidden">
                 {offers.map((o) => {
                   const isSelected = selected.has(o.url);
                   return (
@@ -250,7 +250,7 @@ function SearchPage() {
                       type="button"
                       key={o.url}
                       onClick={() => toggle(o.url)}
-                      className={`flex flex-col gap-3 rounded-2xl p-3 text-left transition sm:flex-row sm:items-start sm:gap-4 sm:p-4 ${
+                      className={`w-full overflow-hidden min-w-0 flex flex-col gap-3 rounded-2xl p-3 text-left transition sm:flex-row sm:items-start sm:gap-4 sm:p-4 ${
                         isSelected
                           ? "glass-strong ring-2 ring-[var(--primary)]"
                           : "glass glass-hover"
@@ -266,18 +266,29 @@ function SearchPage() {
                             </div>
                           )}
                         </div>
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 overflow-hidden">
                           <div className="flex items-center gap-2 text-xs font-medium text-[var(--deep)]">
                             {o.siteName}
                           </div>
                           <div className="line-clamp-2 mt-0.5 text-sm font-medium leading-snug break-words">
                             {o.title}
                           </div>
-                          {o.description && (
-                            <div className="line-clamp-1 mt-1 text-xs text-muted-foreground">
-                              {o.description}
-                            </div>
-                          )}
+                          {o.description && (() => {
+                            const clean = o.description
+                              .replace(/!\[.*?\]\(.*?\)/g, "")
+                              .replace(/\[.*?\]\(.*?\)/g, "")
+                              .replace(/#{1,6}\s*/g, "")
+                              .replace(/\*{1,2}(.*?)\*{1,2}/g, "$1")
+                              .replace(/~~(.*?)~~/g, "$1")
+                              .replace(/<[^>]+>/g, "")
+                              .replace(/\s+/g, " ")
+                              .trim();
+                            return clean ? (
+                              <div className="line-clamp-1 mt-1 text-xs text-muted-foreground">
+                                {clean}
+                              </div>
+                            ) : null;
+                          })()}
                           <a
                             href={o.url}
                             target="_blank"
