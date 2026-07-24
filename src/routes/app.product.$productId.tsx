@@ -435,7 +435,7 @@ function ProductDetail() {
                       fill={`url(#pt-grad-${s.id})`}
                       activeDot={{ r: 5, strokeWidth: 2, stroke: "white" }}
                       dot={false}
-                      connectNulls
+                      connectNulls={false}
                       animationDuration={300}
                     />
                   ))}
