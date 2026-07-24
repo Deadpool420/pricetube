@@ -611,32 +611,8 @@ export const searchProductOffers = createServerFn({ method: "POST" })
 
       offers = offers.filter((o) => o.currency !== "INR");
 
-      const NON_RETAILER_HOSTS = [
-        "bikroy.com",
-        "gsmarena.com",
-        "gsmarena.com.bd",
-        "kimovil.com",
-        "nanoreview.net",
-        "phonearena.com",
-        "gadgets360.com",
-        "91mobiles.com",
-        "amazon.in",
-        "flipkart.com",
-        "myntra.com",
-        "nykaa.com",
-        "tirabeauty.com",
-        "purplle.com",
-        "meesho.com",
-        "ajio.com",
-        "bigbasket.com",
-        "blinkit.com",
-        "swiggy.com",
-        "zomato.com",
-      ];
-      offers = offers.filter((o) => {
-        const h = hostOf(o.url);
-        return !NON_RETAILER_HOSTS.some((bad) => h === bad || h.endsWith(`.${bad}`));
-      });
+
+
 
       const queryWords = data.query
         .toLowerCase()
