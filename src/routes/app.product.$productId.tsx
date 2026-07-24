@@ -300,25 +300,37 @@ function ProductDetail() {
 
       <h2 className="mt-8 mb-3 px-1 font-display text-lg font-semibold">Prices right now</h2>
       <div className="grid gap-3 md:grid-cols-2">
-        {data.sources.map((s) => {
+        {[...data.sources].sort((a, b) => {
+          const aHas = typeof a.current_price === "number" && a.current_price > 0;
+          const bHas = typeof b.current_price === "number" && b.current_price > 0;
+          if (aHas && !bHas) return -1;
+          if (!aHas && bHas) return 1;
+          if (aHas && bHas) return (a.current_price as number) - (b.current_price as number);
+          return 0;
+        }).map((s) => {
           const isLowest = s.current_price === lowest;
           const suspicious = (s as unknown as { suspicious_price?: boolean }).suspicious_price === true;
+          const srcCurrency = (s.currency === "TK" ? "BDT" : s.currency) ?? "BDT";
           return (
             <div
               key={s.id}
               className={`glass glass-hover relative min-w-0 overflow-hidden rounded-2xl p-5 sm:p-6 ${isLowest ? "border-l-[3px] border-l-[var(--primary)]" : ""}`}
             >
-              {isLowest && (
-                <span className="absolute right-14 top-3 rounded-full bg-brand-gradient px-2 py-0.5 text-[10px] font-semibold text-primary-foreground leading-tight">
-                  Lowest
-                </span>
-              )}
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-xs uppercase tracking-wide text-muted-foreground">{s.site_name}</div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate">
+                      {s.site_name}
+                    </p>
+                    {isLowest && (
+                      <span className="shrink-0 rounded-full bg-brand-gradient px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground leading-tight tracking-wide uppercase">
+                        Lowest
+                      </span>
+                    )}
+                  </div>
                   <div className="mt-1 min-w-0 font-display text-xl font-bold break-words sm:text-2xl">
                     {typeof s.current_price === "number" && s.current_price > 0
-                      ? formatPrice(s.current_price, s.currency ?? "USD")
+                      ? formatPrice(s.current_price, srcCurrency)
                       : <span className="text-sm font-medium text-muted-foreground">Price unavailable</span>}
                   </div>
                   {suspicious && (
@@ -423,7 +435,7 @@ function ProductDetail() {
                       fill={`url(#pt-grad-${s.id})`}
                       activeDot={{ r: 5, strokeWidth: 2, stroke: "white" }}
                       dot={false}
-                      connectNulls
+                      connectNulls={false}
                       animationDuration={300}
                     />
                   ))}
@@ -565,7 +577,8 @@ function buildChartData(history: any[], sources: any[]) {
     const label = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
     const row = byDate.get(label) ?? { label };
     const name = sourceById.get(h.source_id);
-    if (name) row[name] = Number(h.price);
+    const price = Number(h.price);
+    if (name) row[name] = price > 0 ? price : undefined;
     byDate.set(label, row);
   }
   return Array.from(byDate.values());

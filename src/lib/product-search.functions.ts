@@ -402,6 +402,7 @@ function detectCategory(query: string): {
 }
 
 const EXCLUDED_HOSTS = [
+  // Social media — not retailers
   "facebook.com",
   "tiktok.com",
   "scribd.com",
@@ -413,6 +414,36 @@ const EXCLUDED_HOSTS = [
   "quora.com",
   "wikipedia.org",
   "linkedin.com",
+  // Classifieds — secondhand, not retail
+  "bikroy.com",
+  // Review/spec sites — not retailers
+  "gsmarena.com",
+  "gsmarena.com.bd",
+  "kimovil.com",
+  "nanoreview.net",
+  "phonearena.com",
+  "techradar.com",
+  "gsmmobil.com",
+  "mobiledokan.com.bd",
+  // Indian retailers — wrong country
+  "amazon.in",
+  "flipkart.com",
+  "myntra.com",
+  "nykaa.com",
+  "tirabeauty.com",
+  "purplle.com",
+  "meesho.com",
+  "ajio.com",
+  "bigbasket.com",
+  "blinkit.com",
+  "swiggy.com",
+  "zomato.com",
+  "gadgets360.com",
+  "91mobiles.com",
+  // Other non-BD non-retailers
+  "gshopper.com",
+  "aliexpress.com",
+  "ebay.com",
 ];
 
 type Offer = {
@@ -549,12 +580,7 @@ export const searchProductOffers = createServerFn({ method: "POST" })
       const detected = detectCategory(data.query);
       const categoryRetailers = CATEGORY_RETAILERS[detected.category];
 
-      const topRetailers = categoryRetailers
-        .slice(0, 5)
-        .map((d) => d.replace(/\.(com\.bd|com|co\.bd|bd)$/, ""))
-        .join(" OR ");
-
-      const primaryQuery = `"${data.query}" ${detected.queryEnhancement} ${topRetailers}`;
+      const primaryQuery = `"${data.query}" ${detected.queryEnhancement}`;
 
       const primary = await runFirecrawlSearch(apiKey, primaryQuery, 8);
 
@@ -585,32 +611,8 @@ export const searchProductOffers = createServerFn({ method: "POST" })
 
       offers = offers.filter((o) => o.currency !== "INR");
 
-      const NON_RETAILER_HOSTS = [
-        "bikroy.com",
-        "gsmarena.com",
-        "gsmarena.com.bd",
-        "kimovil.com",
-        "nanoreview.net",
-        "phonearena.com",
-        "gadgets360.com",
-        "91mobiles.com",
-        "amazon.in",
-        "flipkart.com",
-        "myntra.com",
-        "nykaa.com",
-        "tirabeauty.com",
-        "purplle.com",
-        "meesho.com",
-        "ajio.com",
-        "bigbasket.com",
-        "blinkit.com",
-        "swiggy.com",
-        "zomato.com",
-      ];
-      offers = offers.filter((o) => {
-        const h = hostOf(o.url);
-        return !NON_RETAILER_HOSTS.some((bad) => h === bad || h.endsWith(`.${bad}`));
-      });
+
+
 
       const queryWords = data.query
         .toLowerCase()

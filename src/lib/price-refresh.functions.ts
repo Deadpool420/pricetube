@@ -32,7 +32,7 @@ async function scrapeOne(url: string, apiKey: string) {
     const payload = (await res.json()) as { data?: { json?: { price?: number; currency?: string } } };
     const j = payload.data?.json ?? {};
     if (typeof j.price !== "number") return null;
-    return { price: j.price, currency: (j.currency ?? "BDT").toUpperCase().slice(0, 3) };
+    return { price: j.price, currency: (j.currency === "TK" ? "BDT" : (j.currency ?? "BDT")).toUpperCase().slice(0, 3) };
   } catch (err) {
     console.error("scrapeOne failed:", err);
     return null;
@@ -76,28 +76,25 @@ export const refreshUserPrices = createServerFn({ method: "POST" })
           .update({ current_price: r.price, currency: r.currency, last_checked_at: now })
           .eq("id", s.id);
 
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-
-        const { data: todayEntry } = await supabase
-          .from("price_history")
-          .select("id")
-          .eq("source_id", s.id)
-          .gte("recorded_at", todayStart.toISOString())
-          .maybeSingle();
-
-        if (!todayEntry) {
-          await supabase.from("price_history").insert({
-            source_id: s.id,
-            user_id: userId,
-            price: r.price,
-            currency: r.currency,
-          });
-        } else {
-          await supabase
+        // Only record price history when price actually changes — avoids
+        // bloating the database with duplicate entries on every refresh.
+        if (oldPrice === null || r.price !== oldPrice) {
+          const { data: lastEntry } = await supabase
             .from("price_history")
-            .update({ price: r.price, currency: r.currency })
-            .eq("id", todayEntry.id);
+            .select("price")
+            .eq("source_id", s.id)
+            .order("recorded_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (!lastEntry || lastEntry.price !== r.price) {
+            await supabase.from("price_history").insert({
+              source_id: s.id,
+              user_id: userId,
+              price: r.price,
+              currency: r.currency,
+            });
+          }
         }
 
         if (oldPrice !== null && r.price < oldPrice) {
