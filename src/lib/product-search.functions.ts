@@ -580,12 +580,7 @@ export const searchProductOffers = createServerFn({ method: "POST" })
       const detected = detectCategory(data.query);
       const categoryRetailers = CATEGORY_RETAILERS[detected.category];
 
-      const topRetailers = categoryRetailers
-        .slice(0, 5)
-        .map((d) => d.replace(/\.(com\.bd|com|co\.bd|bd)$/, ""))
-        .join(" OR ");
-
-      const primaryQuery = `"${data.query}" ${detected.queryEnhancement} ${topRetailers}`;
+      const primaryQuery = `"${data.query}" ${detected.queryEnhancement}`;
 
       const primary = await runFirecrawlSearch(apiKey, primaryQuery, 8);
 
