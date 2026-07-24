@@ -32,7 +32,7 @@ async function scrapeOne(url: string, apiKey: string) {
     const payload = (await res.json()) as { data?: { json?: { price?: number; currency?: string } } };
     const j = payload.data?.json ?? {};
     if (typeof j.price !== "number") return null;
-    return { price: j.price, currency: (j.currency ?? "BDT").toUpperCase().slice(0, 3) };
+    return { price: j.price, currency: (j.currency === "TK" ? "BDT" : (j.currency ?? "BDT")).toUpperCase().slice(0, 3) };
   } catch (err) {
     console.error("scrapeOne failed:", err);
     return null;
