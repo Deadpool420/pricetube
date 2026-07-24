@@ -402,6 +402,7 @@ function detectCategory(query: string): {
 }
 
 const EXCLUDED_HOSTS = [
+  // Social media — not retailers
   "facebook.com",
   "tiktok.com",
   "scribd.com",
@@ -413,6 +414,36 @@ const EXCLUDED_HOSTS = [
   "quora.com",
   "wikipedia.org",
   "linkedin.com",
+  // Classifieds — secondhand, not retail
+  "bikroy.com",
+  // Review/spec sites — not retailers
+  "gsmarena.com",
+  "gsmarena.com.bd",
+  "kimovil.com",
+  "nanoreview.net",
+  "phonearena.com",
+  "techradar.com",
+  "gsmmobil.com",
+  "mobiledokan.com.bd",
+  // Indian retailers — wrong country
+  "amazon.in",
+  "flipkart.com",
+  "myntra.com",
+  "nykaa.com",
+  "tirabeauty.com",
+  "purplle.com",
+  "meesho.com",
+  "ajio.com",
+  "bigbasket.com",
+  "blinkit.com",
+  "swiggy.com",
+  "zomato.com",
+  "gadgets360.com",
+  "91mobiles.com",
+  // Other non-BD non-retailers
+  "gshopper.com",
+  "aliexpress.com",
+  "ebay.com",
 ];
 
 type Offer = {
