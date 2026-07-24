@@ -58,10 +58,13 @@ function Wishlist() {
                 .map((s: any) => s.current_price)
                 .filter((v: any): v is number => typeof v === "number" && v > 0);
               const lowest = prices.length ? Math.min(...prices) : null;
-              const currency =
-                (p.product_sources ?? []).find((s: any) => s.currency && s.currency !== "USD")?.currency ??
+              const rawCurrency =
+                (p.product_sources ?? []).find(
+                  (s: any) => s.currency && s.currency !== "USD" && s.currency !== "TK",
+                )?.currency ??
                 p.product_sources?.[0]?.currency ??
                 "BDT";
+              const currency = rawCurrency === "TK" ? "BDT" : rawCurrency;
               return (
                 <Link
                   key={p.id}
