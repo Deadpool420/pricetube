@@ -580,9 +580,10 @@ export const searchProductOffers = createServerFn({ method: "POST" })
       const detected = detectCategory(data.query);
       const categoryRetailers = CATEGORY_RETAILERS[detected.category];
 
-      const primaryQuery = `"${data.query}" ${detected.queryEnhancement}`;
+      // Unquoted query: exact-phrase matching missed most retailer product pages.
+      const primaryQuery = `${data.query} ${detected.queryEnhancement}`;
 
-      const primary = await runFirecrawlSearch(apiKey, primaryQuery, 8);
+      const primary = await runFirecrawlSearch(apiKey, primaryQuery, 20);
 
       const presentHosts = new Set(primary.map((o) => hostOf(o.url)));
       const topMissingRetailer = categoryRetailers.find(
@@ -593,8 +594,8 @@ export const searchProductOffers = createServerFn({ method: "POST" })
       if (topMissingRetailer) {
         backup = await runFirecrawlSearch(
           apiKey,
-          `"${data.query}" site:${topMissingRetailer}`,
-          3,
+          `${data.query} site:${topMissingRetailer}`,
+          8,
         );
       }
 
@@ -611,60 +612,64 @@ export const searchProductOffers = createServerFn({ method: "POST" })
 
       offers = offers.filter((o) => o.currency !== "INR");
 
-
-
+      const isCategoryTrusted = (o: Offer) => {
+        const h = hostOf(o.url);
+        return categoryRetailers.some((d) => h === d || h.endsWith(`.${d}`));
+      };
 
       const queryWords = data.query
         .toLowerCase()
         .split(/\s+/)
         .filter((w) => w.length >= 4);
 
-      if (queryWords.length > 0) {
-        offers = offers.filter((o) => {
-          const titleLower = o.title.toLowerCase();
-          return queryWords.some((w) => titleLower.includes(w));
-        });
-      }
+      // Relevance is scored, not a hard filter: trusted retailers stay even when
+      // the scraped title is imperfect. Only drop clearly unrelated untrusted hits.
+      const relevance = (o: Offer) => {
+        if (queryWords.length === 0) return 1;
+        const titleLower = `${o.title} ${o.url}`.toLowerCase();
+        return queryWords.filter((w) => titleLower.includes(w)).length;
+      };
 
-      const bySite = new Map<string, Offer>();
+      offers = offers.filter((o) => relevance(o) > 0 || isCategoryTrusted(o));
+
+      // Dedupe by hostname — scraped siteName values are inconsistent and were
+      // collapsing unrelated listings from different retailers into one.
+      const byHost = new Map<string, Offer>();
       for (const o of offers) {
-        const siteKey = o.siteName.toLowerCase().trim();
-        if (!bySite.has(siteKey)) {
-          bySite.set(siteKey, o);
-        } else {
-          const existing = bySite.get(siteKey)!;
-          const scoreOffer = queryWords.filter((w) =>
-            o.title.toLowerCase().includes(w),
-          ).length;
-          const scoreExisting = queryWords.filter((w) =>
-            existing.title.toLowerCase().includes(w),
-          ).length;
-          if (
-            scoreOffer > scoreExisting ||
-            (scoreOffer === scoreExisting && o.price !== null && existing.price === null)
-          ) {
-            bySite.set(siteKey, o);
-          }
+        const key = hostOf(o.url) || o.url;
+        const existing = byHost.get(key);
+        if (!existing) {
+          byHost.set(key, o);
+          continue;
+        }
+        const scoreOffer = relevance(o);
+        const scoreExisting = relevance(existing);
+        if (
+          scoreOffer > scoreExisting ||
+          (scoreOffer === scoreExisting && o.price !== null && existing.price === null)
+        ) {
+          byHost.set(key, o);
         }
       }
-      offers = Array.from(bySite.values());
-
-      const isCategoryTrusted = (o: Offer) => {
-        const h = hostOf(o.url);
-        return categoryRetailers.some((d) => h === d || h.endsWith(`.${d}`));
-      };
+      offers = Array.from(byHost.values());
 
       const priceKey = (o: Offer) =>
         typeof o.price === "number" && o.price > 0
           ? o.price
           : Number.POSITIVE_INFINITY;
 
-      const trusted = offers
-        .filter(isCategoryTrusted)
-        .sort((a, b) => priceKey(a) - priceKey(b));
-      const rest = offers
-        .filter((o) => !isCategoryTrusted(o))
-        .sort((a, b) => priceKey(a) - priceKey(b));
+      const rank = (a: Offer, b: Offer) => {
+        // Priced offers ahead of unavailable ones, then relevance, then price.
+        const aPriced = priceKey(a) !== Number.POSITIVE_INFINITY ? 0 : 1;
+        const bPriced = priceKey(b) !== Number.POSITIVE_INFINITY ? 0 : 1;
+        if (aPriced !== bPriced) return aPriced - bPriced;
+        const rel = relevance(b) - relevance(a);
+        if (rel !== 0) return rel;
+        return priceKey(a) - priceKey(b);
+      };
+
+      const trusted = offers.filter(isCategoryTrusted).sort(rank);
+      const rest = offers.filter((o) => !isCategoryTrusted(o)).sort(rank);
 
       return { ok: true as const, offers: [...trusted, ...rest] };
     } catch (err) {
