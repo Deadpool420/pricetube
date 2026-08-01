@@ -693,8 +693,32 @@ export const searchProductOffers = createServerFn({ method: "POST" })
 
       const trusted = offers.filter(isCategoryTrusted).sort(rank);
       const rest = offers.filter((o) => !isCategoryTrusted(o)).sort(rank);
+      const ranked = [...trusted, ...rest];
 
-      return { ok: true as const, offers: [...trusted, ...rest] };
+      // Write-through so the next identical search is instant.
+      const refreshedAt = new Date().toISOString();
+      await cache.saveToCatalog({
+        searchKey,
+        displayName: data.query.trim(),
+        category: detected.category,
+        offers: ranked.map((o) => ({
+          url: o.url,
+          title: o.title,
+          price: o.price,
+          currency: o.currency,
+          imageUrl: o.imageUrl,
+          siteName: o.siteName,
+          description: o.description,
+        })),
+      });
+
+      return {
+        ok: true as const,
+        offers: ranked,
+        fromCache: false as const,
+        cachedAt: refreshedAt,
+      };
+
     } catch (err) {
       console.error("searchProductOffers error:", err);
       return { ok: false as const, error: "Search request failed." };
