@@ -570,9 +570,31 @@ async function runFirecrawlSearch(
 
 export const searchProductOffers = createServerFn({ method: "POST" })
   .inputValidator((input) =>
-    z.object({ query: z.string().min(2).max(200) }).parse(input),
+    z
+      .object({
+        query: z.string().min(2).max(200),
+        forceRefresh: z.boolean().optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ data }) => {
+    const cache = await import("./catalog-cache.server");
+    const searchKey = cache.normalizeSearchKey(data.query);
+
+    // 1. Cache first — a fresh hit costs no scraping credits and returns instantly.
+    if (!data.forceRefresh) {
+      const hit = await cache.lookupCatalog(searchKey);
+      if (hit && hit.offers.length > 0 && cache.isFresh(hit.lastRefreshedAt)) {
+        void cache.recordCatalogHit(hit.catalogId, await cache.getSearchCount(hit.catalogId));
+        return {
+          ok: true as const,
+          offers: hit.offers,
+          fromCache: true as const,
+          cachedAt: hit.lastRefreshedAt,
+        };
+      }
+    }
+
     const apiKey = process.env.FIRECRAWL_API_KEY;
     if (!apiKey) return { ok: false as const, error: "Search is not configured." };
 
@@ -584,6 +606,7 @@ export const searchProductOffers = createServerFn({ method: "POST" })
       const primaryQuery = `${data.query} ${detected.queryEnhancement}`;
 
       const primary = await runFirecrawlSearch(apiKey, primaryQuery, 20);
+
 
       const presentHosts = new Set(primary.map((o) => hostOf(o.url)));
       const topMissingRetailer = categoryRetailers.find(
