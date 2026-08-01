@@ -62,15 +62,19 @@ function SearchPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
+  const [fromCache, setFromCache] = useState(false);
+  const [lastTerm, setLastTerm] = useState<string | null>(null);
 
-  const runSearch = async (term: string) => {
+  const runSearch = async (term: string, forceRefresh = false) => {
     if (term.trim().length < 2) return;
     setSearching(true);
     setOffers(null);
     setSelected(new Set());
+    setLastTerm(term);
     try {
       const finalQuery = country ? `${term.trim()} ${country}` : term.trim();
-      const r = await search({ data: { query: finalQuery } });
+      const r = await search({ data: { query: finalQuery, forceRefresh } });
       if (!r.ok) {
         toast.error(r.error);
         return;
@@ -79,6 +83,8 @@ function SearchPage() {
         toast.message("No results found. Try a different search.");
       }
       setOffers(r.offers);
+      setCachedAt(r.cachedAt ?? null);
+      setFromCache(Boolean(r.fromCache));
       setSelected(
         new Set(r.offers.filter((o) => o.price !== null).slice(0, 4).map((o) => o.url)),
       );
@@ -89,6 +95,7 @@ function SearchPage() {
       setSearching(false);
     }
   };
+
 
   // Run an initial search if ?q= is present
   useEffect(() => {
