@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      catalog_sources: {
+        Row: {
+          catalog_id: string
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          image_url: string | null
+          last_checked_at: string
+          price: number | null
+          site_name: string
+          title: string | null
+          url: string
+        }
+        Insert: {
+          catalog_id: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          last_checked_at?: string
+          price?: number | null
+          site_name: string
+          title?: string | null
+          url: string
+        }
+        Update: {
+          catalog_id?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          last_checked_at?: string
+          price?: number | null
+          site_name?: string
+          title?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_sources_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "product_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_alerts: {
         Row: {
           created_at: string
@@ -84,6 +134,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      product_catalog: {
+        Row: {
+          category: string
+          created_at: string
+          display_name: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          last_refreshed_at: string
+          last_searched_at: string
+          search_count: number
+          search_key: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          display_name: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          last_refreshed_at?: string
+          last_searched_at?: string
+          search_count?: number
+          search_key: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          last_refreshed_at?: string
+          last_searched_at?: string
+          search_count?: number
+          search_key?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       product_sources: {
         Row: {

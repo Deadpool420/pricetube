@@ -49,6 +49,18 @@ type Offer = {
   suspiciousPrice?: boolean;
 };
 
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.round(diff / 60000);
+  if (mins < 2) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return days === 1 ? "yesterday" : `${days}d ago`;
+}
+
+
 function SearchPage() {
   const { user } = useAuth();
   const { country } = useCountry();
@@ -62,15 +74,19 @@ function SearchPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
+  const [fromCache, setFromCache] = useState(false);
+  const [lastTerm, setLastTerm] = useState<string | null>(null);
 
-  const runSearch = async (term: string) => {
+  const runSearch = async (term: string, forceRefresh = false) => {
     if (term.trim().length < 2) return;
     setSearching(true);
     setOffers(null);
     setSelected(new Set());
+    setLastTerm(term);
     try {
       const finalQuery = country ? `${term.trim()} ${country}` : term.trim();
-      const r = await search({ data: { query: finalQuery } });
+      const r = await search({ data: { query: finalQuery, forceRefresh } });
       if (!r.ok) {
         toast.error(r.error);
         return;
@@ -79,6 +95,8 @@ function SearchPage() {
         toast.message("No results found. Try a different search.");
       }
       setOffers(r.offers);
+      setCachedAt(r.cachedAt ?? null);
+      setFromCache(Boolean(r.fromCache));
       setSelected(
         new Set(r.offers.filter((o) => o.price !== null).slice(0, 4).map((o) => o.url)),
       );
@@ -89,6 +107,7 @@ function SearchPage() {
       setSearching(false);
     }
   };
+
 
   // Run an initial search if ?q= is present
   useEffect(() => {
@@ -239,9 +258,28 @@ function SearchPage() {
 
           {!searching && offers && offers.length > 0 && (
             <div className="mt-6 space-y-4">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                Found {offers.length} {offers.length === 1 ? "offer" : "offers"} · select what to track
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Found {offers.length} {offers.length === 1 ? "offer" : "offers"} · select what to track
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {cachedAt && (
+                    <span>
+                      {fromCache ? "Prices updated " : "Updated "}
+                      {timeAgo(cachedAt)}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => lastTerm && runSearch(lastTerm, true)}
+                    className="glass glass-hover rounded-full px-3 py-1.5 text-xs font-medium"
+                    aria-label="Refresh prices from retailers"
+                  >
+                    Refresh prices
+                  </button>
+                </div>
               </div>
+
               <div className="grid gap-3 overflow-hidden">
                 {offers.map((o) => {
                   const isSelected = selected.has(o.url);
