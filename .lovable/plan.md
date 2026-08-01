@@ -1,35 +1,58 @@
-Yes — both, in one pass.
+# Cached product catalog for instant searches
 
-## Part 1: Fix sparse search results (2–3 offers)
+The idea is right: stop paying for a live scrape every time someone searches a product that has already been searched. Two things in the suggested plan I'd change, because they don't fit how this app is built:
 
-The search currently makes one broad Firecrawl call (limit 8) plus one backup retailer call (limit 3), then applies a hard title filter and collapses everything to one offer per scraped site name. That stack of narrowing steps is what leaves only 2–3 offers.
+- **Skip the 200-product manual seed list as step one.** The cache fills itself from real searches (write-through). Seeding a hand-written list burns a lot of Firecrawl credits up front on products nobody may search, and the names rarely match retailer listings exactly. A seeding tool is still worth having — just later, and driven by what people actually search.
+- **No scheduled Edge Function.** This app uses TanStack server routes; the weekly refresh will be a scheduled database job calling a public refresh endpoint.
 
-Changes in `src/lib/product-search.functions.ts`:
+## How it will work
 
-1. **More candidates, same call budget** — raise the primary search limit and the backup search limit while keeping a maximum of two Firecrawl calls per user search.
-2. **Less restrictive query** — stop forcing the whole user query into an exact quoted phrase for the primary search, which currently misses many retailer product pages. Keep the Bangladesh/retailer enhancement terms.
-3. **Score instead of hard-filter relevance** — replace the "title must contain a long query word or it's dropped" rule with a relevance score. Strong matches rank first; trusted retailer results are not discarded just because their scraped title is imperfect.
-4. **Dedupe by hostname, not scraped site name** — scraped `siteName` values are inconsistent and currently collapse unrelated listings into one.
-5. **Keep all existing quality rules** — INR/Indian retailers, classifieds, social links, and spec/review sites stay excluded; priced offers still sort ahead of unavailable ones, and trusted retailers ahead of the rest.
-6. **Verify** — run real searches (for example "cmf phone 2 pro" and one more product) and confirm the results list is meaningfully longer than 2–3 offers.
-
-Possible small supporting tweak in `src/routes/search.tsx` only if the result display needs it after verification.
-
-## Part 2: Remove the blue bracket next to the lowest price
-
-On the product detail page each source card draws a blue left border when it is the cheapest:
-
-```tsx
-isLowest ? "border-l-[3px] border-l-[var(--primary)]" : ""
+```text
+user searches "cmf phone 2 pro"
+        |
+   normalize query  ->  look up catalog
+        |                    |
+   fresh (< 7 days)?  yes -> return instantly (0 credits, ~50ms)
+        |
+        no
+        |
+   Firecrawl search (current pipeline)  ->  save offers to catalog  ->  return
 ```
 
-Change in `src/routes/app.product.$productId.tsx`:
+## Phase 1 — Cache tables + write-through search
 
-- Remove that conditional left border.
-- Keep the "Lowest" badge and all other card styling, so the cheapest source is still clearly marked.
+New tables:
 
-## Files touched
+- `product_catalog` — normalized search key, display name, category, image, last refreshed, active flag, search hit counter
+- `catalog_sources` — one row per retailer offer: site name, url, price, currency, last checked
 
-- `src/lib/product-search.functions.ts`
-- `src/routes/app.product.$productId.tsx`
-- `src/routes/search.tsx` (only if needed after verification)
+Access rules: anyone (signed in or not) can read the catalog, since search is public. Only the server (privileged) writes to it — no user can insert or edit cached data.
+
+Search change in the existing search function:
+
+1. Normalize the query (lowercase, collapse spaces, strip punctuation) and look it up.
+2. Hit and fresh → return cached offers immediately, mark it as a cache hit, no Firecrawl call.
+3. Miss or stale → run the current Firecrawl pipeline unchanged, then store the results.
+4. The search results page gets a small "Updated X ago" line so people know how fresh prices are.
+
+Freshness window: 7 days by default (prices on these sites don't move hourly), and a manual "Refresh prices" action on the results page for anyone who wants live numbers.
+
+## Phase 2 — Weekly automatic refresh
+
+A scheduled database job (Sunday night) calls a public refresh endpoint that re-runs searches for the most-searched active catalog entries, oldest first, with a hard cap per run so credit use stays predictable. Entries nobody has searched in a long time get deactivated instead of refreshed.
+
+## Phase 3 — Admin catalog tools
+
+An `/admin` page gated by a proper server-side role check (a separate roles table — never a flag on the profile), showing: catalog size, cache hit rate, most-searched queries, stalest entries, plus buttons to refresh or deactivate entries and to bulk-add product names when you do want to pre-seed a category.
+
+## Technical notes
+
+- Tables created via migration with grants + row-level security; reads open to public, writes server-only.
+- Cache read/write happens inside the existing `searchProductOffers` server function, so the frontend contract doesn't change.
+- Cached offers reuse the same offer shape the UI already renders, so `src/routes/search.tsx` needs only the freshness line and refresh button.
+- Refresh endpoint lives under `src/routes/api/public/` and validates its caller.
+- Tracking a product still copies the offer into the user's own `products`/`product_sources` rows — the catalog is only a cache layer, user data is untouched.
+
+## Suggested order
+
+Phase 1 first — it alone makes repeat searches instant and cuts most credit spend. Phases 2 and 3 after you've seen real cache hits.
