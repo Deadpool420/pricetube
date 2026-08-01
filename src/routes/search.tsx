@@ -246,9 +246,28 @@ function SearchPage() {
 
           {!searching && offers && offers.length > 0 && (
             <div className="mt-6 space-y-4">
-              <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                Found {offers.length} {offers.length === 1 ? "offer" : "offers"} · select what to track
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Found {offers.length} {offers.length === 1 ? "offer" : "offers"} · select what to track
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {cachedAt && (
+                    <span>
+                      {fromCache ? "Prices updated " : "Updated "}
+                      {timeAgo(cachedAt)}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => lastTerm && runSearch(lastTerm, true)}
+                    className="glass glass-hover rounded-full px-3 py-1.5 text-xs font-medium"
+                    aria-label="Refresh prices from retailers"
+                  >
+                    Refresh prices
+                  </button>
+                </div>
               </div>
+
               <div className="grid gap-3 overflow-hidden">
                 {offers.map((o) => {
                   const isSelected = selected.has(o.url);
