@@ -43,7 +43,7 @@ A scheduled database job (Sunday night) calls a public refresh endpoint that re-
 
 ## Phase 3 — Admin catalog tools
 
-An `/admin` page gated by a proper server-side role check (a separate roles table — never a flag on the profile), showing: catalog size, cache hit rate, most-searched queries, stalest entries, plus buttons to refresh or deactivate entries and to bulk-add product names when you do want to pre-seed a category.
+You're the only user for now, so the cache still fills from your own searches — it just means the "grows automatically from traffic" effect is slower, which makes the admin seeding tool more useful, not less. An `/admin` page showing catalog size, cache hit rate, your most-searched queries and the stalest entries, plus buttons to refresh or deactivate entries and to bulk-add product names for pre-seeding a category. Access is still gated by a server-side role check on a separate roles table (not a flag on the profile) — that stays correct even if you open the app up to others later.
 
 ## Technical notes
 
