@@ -138,6 +138,16 @@ export function AppHeader() {
                   <span className="truncate text-xs text-muted-foreground">{country ?? "Not set"}</span>
                 </DropdownMenuItem>
 
+                {isAdmin && (
+                  <DropdownMenuItem
+                    onSelect={() => router.navigate({ to: "/app/admin" })}
+                    className="rounded-lg px-3 py-2 text-sm focus:bg-white/70"
+                  >
+                    <ShieldCheck className="mr-2 h-4 w-4 text-[var(--primary)]" />
+                    Catalog admin
+                  </DropdownMenuItem>
+                )}
+
                 <DropdownMenuItem className="rounded-lg px-3 py-2 text-sm focus:bg-white/70">
                   <Settings className="mr-2 h-4 w-4 text-[var(--primary)]" />
                   Preferences
