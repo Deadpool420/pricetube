@@ -16,6 +16,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppWishlistRouteImport } from './routes/app.wishlist'
+import { Route as AppAdminRouteImport } from './routes/app.admin'
 import { Route as AppAddRouteImport } from './routes/app.add'
 import { Route as AppProductProductIdRouteImport } from './routes/app.product.$productId'
 
@@ -54,6 +55,11 @@ const AppWishlistRoute = AppWishlistRouteImport.update({
   path: '/wishlist',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAddRoute = AppAddRouteImport.update({
   id: '/add',
   path: '/add',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/app/add': typeof AppAddRoute
+  '/app/admin': typeof AppAdminRoute
   '/app/wishlist': typeof AppWishlistRoute
   '/app/': typeof AppIndexRoute
   '/app/product/$productId': typeof AppProductProductIdRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/app/add': typeof AppAddRoute
+  '/app/admin': typeof AppAdminRoute
   '/app/wishlist': typeof AppWishlistRoute
   '/app': typeof AppIndexRoute
   '/app/product/$productId': typeof AppProductProductIdRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/app/add': typeof AppAddRoute
+  '/app/admin': typeof AppAdminRoute
   '/app/wishlist': typeof AppWishlistRoute
   '/app/': typeof AppIndexRoute
   '/app/product/$productId': typeof AppProductProductIdRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/sitemap.xml'
     | '/app/add'
+    | '/app/admin'
     | '/app/wishlist'
     | '/app/'
     | '/app/product/$productId'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/sitemap.xml'
     | '/app/add'
+    | '/app/admin'
     | '/app/wishlist'
     | '/app'
     | '/app/product/$productId'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/sitemap.xml'
     | '/app/add'
+    | '/app/admin'
     | '/app/wishlist'
     | '/app/'
     | '/app/product/$productId'
@@ -192,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWishlistRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/admin': {
+      id: '/app/admin'
+      path: '/admin'
+      fullPath: '/app/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/add': {
       id: '/app/add'
       path: '/add'
@@ -211,6 +230,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAddRoute: typeof AppAddRoute
+  AppAdminRoute: typeof AppAdminRoute
   AppWishlistRoute: typeof AppWishlistRoute
   AppIndexRoute: typeof AppIndexRoute
   AppProductProductIdRoute: typeof AppProductProductIdRoute
@@ -218,6 +238,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAddRoute: AppAddRoute,
+  AppAdminRoute: AppAdminRoute,
   AppWishlistRoute: AppWishlistRoute,
   AppIndexRoute: AppIndexRoute,
   AppProductProductIdRoute: AppProductProductIdRoute,
