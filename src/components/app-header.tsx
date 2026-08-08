@@ -26,6 +26,25 @@ export function AppHeader() {
   const { country, setCountry } = useCountry();
   const [notifications, setNotifications] = useState(true);
   const [countryOpen, setCountryOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const adminCheck = useServerFn(checkIsAdmin);
+
+  useEffect(() => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+    let active = true;
+    adminCheck({ data: undefined })
+      .then((r) => active && setIsAdmin(r.isAdmin))
+      .catch(() => active && setIsAdmin(false));
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+
 
   const photo =
     (user?.user_metadata?.avatar_url as string | undefined) ||
