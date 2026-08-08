@@ -1,6 +1,8 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { LogOut, Sparkles, Settings, Bell, LayoutGrid, Heart, Globe, Check } from "lucide-react";
-import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { LogOut, Sparkles, Settings, Bell, LayoutGrid, Heart, Globe, Check, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { checkIsAdmin } from "@/lib/admin-catalog.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { useCountry, COUNTRIES } from "@/hooks/use-country";
 import {
