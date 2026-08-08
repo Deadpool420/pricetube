@@ -14,7 +14,7 @@ function AppLayout() {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate({ to: "/login" });
+      navigate({ to: "/login", search: { redirect: undefined } });
     }
   }, [user, loading, navigate]);
 
