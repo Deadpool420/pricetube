@@ -1,6 +1,8 @@
 import { Link, useRouter } from "@tanstack/react-router";
-import { LogOut, Sparkles, Settings, Bell, LayoutGrid, Heart, Globe, Check } from "lucide-react";
-import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { LogOut, Sparkles, Settings, Bell, LayoutGrid, Heart, Globe, Check, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { checkIsAdmin } from "@/lib/admin-catalog.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { useCountry, COUNTRIES } from "@/hooks/use-country";
 import {
@@ -24,6 +26,25 @@ export function AppHeader() {
   const { country, setCountry } = useCountry();
   const [notifications, setNotifications] = useState(true);
   const [countryOpen, setCountryOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const adminCheck = useServerFn(checkIsAdmin);
+
+  useEffect(() => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+    let active = true;
+    adminCheck({ data: undefined })
+      .then((r) => active && setIsAdmin(r.isAdmin))
+      .catch(() => active && setIsAdmin(false));
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+
 
   const photo =
     (user?.user_metadata?.avatar_url as string | undefined) ||
@@ -138,6 +159,16 @@ export function AppHeader() {
                   <span className="truncate text-xs text-muted-foreground">{country ?? "Not set"}</span>
                 </DropdownMenuItem>
 
+                {isAdmin && (
+                  <DropdownMenuItem
+                    onSelect={() => router.navigate({ to: "/app/admin" })}
+                    className="rounded-lg px-3 py-2 text-sm focus:bg-white/70"
+                  >
+                    <ShieldCheck className="mr-2 h-4 w-4 text-[var(--primary)]" />
+                    Catalog admin
+                  </DropdownMenuItem>
+                )}
+
                 <DropdownMenuItem className="rounded-lg px-3 py-2 text-sm focus:bg-white/70">
                   <Settings className="mr-2 h-4 w-4 text-[var(--primary)]" />
                   Preferences
@@ -186,6 +217,7 @@ export function AppHeader() {
           ) : (
             <Link
               to="/login"
+              search={{ redirect: undefined }}
               className="flex items-center gap-1.5 rounded-full bg-brand-gradient px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-md hover:shadow-lg transition sm:px-4"
             >
               <Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Sign in</span>
