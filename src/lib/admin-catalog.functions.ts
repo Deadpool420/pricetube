@@ -33,16 +33,22 @@ export const checkIsAdmin = createServerFn({ method: "POST" })
 export const listCatalogEntries = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    z.object({ search: z.string().trim().max(200).optional() }).parse(input ?? {}),
+    z
+      .object({
+        search: z.string().trim().max(200).optional(),
+        status: z.enum(["verified", "pending_review", "rejected"]).optional(),
+      })
+      .parse(input ?? {}),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context as Ctx);
     let q = context.supabase
       .from("product_catalog")
-      .select("id, search_key, display_name, category, image_url, is_active, search_count, last_refreshed_at")
+      .select("id, search_key, display_name, category, image_url, is_active, search_count, last_refreshed_at, verification_status")
       .order("last_searched_at", { ascending: false })
       .limit(200);
     if (data.search) q = q.ilike("display_name", `%${data.search}%`);
+    if (data.status) q = q.eq("verification_status", data.status);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
 
@@ -108,13 +114,41 @@ export const saveCatalogEntry = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
+    // Entries created by hand in admin are curated, so they start verified.
     const { data: inserted, error } = await context.supabase
       .from("product_catalog")
-      .insert(payload)
+      .insert({ ...payload, verification_status: "verified" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
     return { id: inserted.id as string };
+  });
+
+export const setCatalogVerification = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        status: z.enum(["verified", "pending_review", "rejected"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as Ctx);
+    const patch: { verification_status: string; is_active?: boolean; last_refreshed_at?: string } = {
+      verification_status: data.status,
+    };
+    if (data.status === "verified") {
+      patch.is_active = true;
+      patch.last_refreshed_at = new Date().toISOString();
+    }
+    const { error } = await context.supabase
+      .from("product_catalog")
+      .update(patch)
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
   });
 
 export const setCatalogEntryActive = createServerFn({ method: "POST" })

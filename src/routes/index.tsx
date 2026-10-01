@@ -8,25 +8,25 @@ export const Route = createFileRoute("/")({
   component: Landing,
   head: () => ({
     meta: [
-      { title: "Price Tube — Track product prices across every store" },
+      { title: "Price Tag — Track product prices across every store" },
       {
         name: "description",
         content:
-          "Search any product by name. Price Tube finds every retailer selling it, compares prices, and quietly tracks the history for you.",
+          "Search any product by name. Price Tag finds every retailer selling it, compares prices, and quietly tracks the history for you.",
       },
-      { property: "og:title", content: "Price Tube — Track product prices across every store" },
+      { property: "og:title", content: "Price Tag — Track product prices across every store" },
       {
         property: "og:description",
         content:
-          "Search any product by name. Price Tube finds every retailer, compares prices, and tracks the history.",
+          "Search any product by name. Price Tag finds every retailer, compares prices, and tracks the history.",
       },
       { property: "og:url", content: "https://pricetube.lovable.app/" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Price Tube — Track product prices across every store" },
+      { name: "twitter:title", content: "Price Tag — Track product prices across every store" },
       {
         name: "twitter:description",
         content:
-          "Search any product by name. Price Tube finds every retailer, compares prices, and tracks the history.",
+          "Search any product by name. Price Tag finds every retailer, compares prices, and tracks the history.",
       },
     ],
     links: [{ rel: "canonical", href: "https://pricetube.lovable.app/" }],
@@ -83,7 +83,7 @@ function Landing() {
               <span className="text-gradient">We find every price.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-base text-muted-foreground md:text-lg">
-              Search like Google. Price Tube discovers every store selling it, lines up the prices
+              Search like Google. Price Tag discovers every store selling it, lines up the prices
               side by side, and quietly watches them drop.
             </p>
             <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
@@ -119,7 +119,7 @@ function Landing() {
                 </button>
               </div>
               <div className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                Price Tube looks across Amazon, Best Buy, eBay, Walmart, Target and more
+                Price Tag looks across Amazon, Best Buy, eBay, Walmart, Target and more
               </div>
             </div>
           </form>
@@ -162,7 +162,7 @@ function Landing() {
               icon: Search,
               title: "Search by name",
               body:
-                "Type any product. Price Tube scans the major retailers and shows the offers in one list.",
+                "Type any product. Price Tag scans the major retailers and shows the offers in one list.",
             },
             {
               n: "02",
@@ -206,7 +206,7 @@ function Landing() {
                   No tabs. No screenshots. No "wait, was it cheaper last week?"
                 </h2>
                 <p className="mt-3 max-w-xl text-sm text-muted-foreground md:text-base">
-                  Price Tube is a single page where every product you care about sits with its current
+                  Price Tag is a single page where every product you care about sits with its current
                   prices and its history. Search, save, hit refresh, decide. That's it.
                 </p>
               </div>

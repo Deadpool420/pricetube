@@ -42,15 +42,16 @@ async function admin() {
   return supabaseAdmin;
 }
 
+/** Only admin-verified catalog entries are ever served as instant results. */
 export async function lookupCatalog(searchKey: string): Promise<CacheHit | null> {
   try {
     const db = await admin();
     const { data, error } = await db
       .from("product_catalog")
-      .select("id, display_name, image_url, last_refreshed_at, is_active")
+      .select("id, display_name, image_url, last_refreshed_at, is_active, verification_status")
       .eq("search_key", searchKey)
       .maybeSingle();
-    if (error || !data || !data.is_active) return null;
+    if (error || !data || !data.is_active || data.verification_status !== "verified") return null;
 
     const { data: sources } = await db
       .from("catalog_sources")
@@ -107,7 +108,10 @@ export async function getSearchCount(catalogId: string): Promise<number> {
   }
 }
 
-/** Write-through: store (or refresh) a search result set in the catalog. */
+/**
+ * Queue live search results for admin review. Never touches verified or
+ * rejected entries, so unverified scrapes can't overwrite curated data.
+ */
 export async function saveToCatalog(args: {
   searchKey: string;
   displayName: string;
@@ -122,12 +126,19 @@ export async function saveToCatalog(args: {
 
     const { data: existing } = await db
       .from("product_catalog")
-      .select("id, search_count")
+      .select("id, search_count, verification_status")
       .eq("search_key", args.searchKey)
       .maybeSingle();
 
     let catalogId: string;
     if (existing) {
+      if (existing.verification_status !== "pending_review") {
+        await db
+          .from("product_catalog")
+          .update({ search_count: (existing.search_count ?? 0) + 1, last_searched_at: now })
+          .eq("id", existing.id);
+        return existing.id;
+      }
       catalogId = existing.id;
       await db
         .from("product_catalog")
@@ -135,7 +146,6 @@ export async function saveToCatalog(args: {
           display_name: args.displayName,
           category: args.category,
           image_url: withImage?.imageUrl ?? null,
-          is_active: true,
           search_count: (existing.search_count ?? 0) + 1,
           last_refreshed_at: now,
           last_searched_at: now,

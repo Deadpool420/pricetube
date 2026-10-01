@@ -581,15 +581,16 @@ export const searchProductOffers = createServerFn({ method: "POST" })
     const cache = await import("./catalog-cache.server");
     const searchKey = cache.normalizeSearchKey(data.query);
 
-    // 1. Cache first — a fresh hit costs no scraping credits and returns instantly.
+    // 1. Verified catalog first — instant, curated, no scraping credits.
     if (!data.forceRefresh) {
       const hit = await cache.lookupCatalog(searchKey);
-      if (hit && hit.offers.length > 0 && cache.isFresh(hit.lastRefreshedAt)) {
+      if (hit && hit.offers.length > 0) {
         void cache.recordCatalogHit(hit.catalogId, await cache.getSearchCount(hit.catalogId));
         return {
           ok: true as const,
           offers: hit.offers,
           fromCache: true as const,
+          verified: true as const,
           cachedAt: hit.lastRefreshedAt,
         };
       }
@@ -695,7 +696,7 @@ export const searchProductOffers = createServerFn({ method: "POST" })
       const rest = offers.filter((o) => !isCategoryTrusted(o)).sort(rank);
       const ranked = [...trusted, ...rest];
 
-      // Write-through so the next identical search is instant.
+      // Queue for admin review; never auto-publishes into the verified catalog.
       const refreshedAt = new Date().toISOString();
       await cache.saveToCatalog({
         searchKey,
@@ -716,6 +717,7 @@ export const searchProductOffers = createServerFn({ method: "POST" })
         ok: true as const,
         offers: ranked,
         fromCache: false as const,
+        verified: false as const,
         cachedAt: refreshedAt,
       };
 

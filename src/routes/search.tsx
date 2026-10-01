@@ -20,13 +20,13 @@ export const Route = createFileRoute("/search")({
   component: SearchPage,
   head: () => ({
     meta: [
-      { title: "Search products — Price Tube" },
+      { title: "Search products — Price Tag" },
       {
         name: "description",
         content:
-          "Search any product by name. Price Tube finds every retailer selling it and compares prices side by side. No sign-up required.",
+          "Search any product by name. Price Tag finds every retailer selling it and compares prices side by side. No sign-up required.",
       },
-      { property: "og:title", content: "Search products — Price Tube" },
+      { property: "og:title", content: "Search products — Price Tag" },
       {
         property: "og:description",
         content:
@@ -263,6 +263,15 @@ function SearchPage() {
                   Found {offers.length} {offers.length === 1 ? "offer" : "offers"} · select what to track
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span
+                    className={`rounded-full px-2.5 py-1 font-medium ${
+                      fromCache
+                        ? "bg-[var(--primary)]/15 text-[var(--primary)]"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {fromCache ? "✓ Verified by Price Tag" : "Live web results · unverified"}
+                  </span>
                   {cachedAt && (
                     <span>
                       {fromCache ? "Prices updated " : "Updated "}

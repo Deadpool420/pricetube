@@ -72,18 +72,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Price Tube — Track product prices across every store" },
+      { title: "Price Tag — Track product prices across every store" },
       {
         name: "description",
         content:
-          "Price Tube tracks product prices across major online retailers so you can spot the best deal in one calm, glanceable dashboard.",
+          "Price Tag tracks product prices across major online retailers so you can spot the best deal in one calm, glanceable dashboard.",
       },
-      { property: "og:site_name", content: "Price Tube" },
+      { property: "og:site_name", content: "Price Tag" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:title", content: "Price Tube — Track product prices across every store" },
-      { name: "twitter:title", content: "Price Tube — Track product prices across every store" },
-      { name: "twitter:description", content: "Price Tube tracks product prices across major online retailers in one calm, glanceable dashboard." },
+      { property: "og:title", content: "Price Tag — Track product prices across every store" },
+      { name: "twitter:title", content: "Price Tag — Track product prices across every store" },
+      { name: "twitter:description", content: "Price Tag tracks product prices across major online retailers in one calm, glanceable dashboard." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/6793c144-49bf-4b0d-9d69-10bc4d39ab25/id-preview-cd80dcb6--42528b86-b1f2-4ede-85f0-4e48c76bd72a.lovable.app-1780483944686.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/6793c144-49bf-4b0d-9d69-10bc4d39ab25/id-preview-cd80dcb6--42528b86-b1f2-4ede-85f0-4e48c76bd72a.lovable.app-1780483944686.png" },
     ],
@@ -104,7 +104,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebSite",
-          name: "Price Tube",
+          name: "Price Tag",
           url: "https://pricetube.lovable.app",
           description:
             "Track product prices across major online retailers in one calm dashboard.",
@@ -115,7 +115,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Organization",
-          name: "Price Tube",
+          name: "Price Tag",
           url: "https://pricetube.lovable.app",
         }),
       },

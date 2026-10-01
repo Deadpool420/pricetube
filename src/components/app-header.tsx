@@ -72,12 +72,12 @@ export function AppHeader() {
           >
             <img
               src="/icon-192.png"
-              alt="Price Tube"
+              alt="Price Tag"
               className="h-full w-full object-cover"
               style={{ borderRadius: "10px" }}
             />
           </span>
-          <span className="text-gradient whitespace-nowrap hidden min-[360px]:inline">Price Tube</span>
+          <span className="text-gradient whitespace-nowrap hidden min-[360px]:inline">Price Tag</span>
         </Link>
 
         {/* Center: nav */}

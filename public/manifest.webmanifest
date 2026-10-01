@@ -1,6 +1,6 @@
 {
-  "name": "Price Tube",
-  "short_name": "Price Tube",
+  "name": "Price Tag",
+  "short_name": "Price Tag",
   "description": "Track product prices across every store.",
   "start_url": "/",
   "display": "standalone",
