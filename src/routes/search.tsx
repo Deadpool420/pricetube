@@ -263,6 +263,15 @@ function SearchPage() {
                   Found {offers.length} {offers.length === 1 ? "offer" : "offers"} · select what to track
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span
+                    className={`rounded-full px-2.5 py-1 font-medium ${
+                      fromCache
+                        ? "bg-[var(--primary)]/15 text-[var(--primary)]"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {fromCache ? "✓ Verified by Price Tag" : "Live web results · unverified"}
+                  </span>
                   {cachedAt && (
                     <span>
                       {fromCache ? "Prices updated " : "Updated "}
