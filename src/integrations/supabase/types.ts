@@ -148,6 +148,7 @@ export type Database = {
           search_count: number
           search_key: string
           updated_at: string
+          verification_status: string
         }
         Insert: {
           category?: string
@@ -161,6 +162,7 @@ export type Database = {
           search_count?: number
           search_key: string
           updated_at?: string
+          verification_status?: string
         }
         Update: {
           category?: string
@@ -174,6 +176,7 @@ export type Database = {
           search_count?: number
           search_key?: string
           updated_at?: string
+          verification_status?: string
         }
         Relationships: []
       }
