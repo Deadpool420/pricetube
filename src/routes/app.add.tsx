@@ -22,9 +22,9 @@ export const Route = createFileRoute("/app/add")({
   component: AddProduct,
   head: () => ({
     meta: [
-      { title: "Track a new product — Price Tube" },
+      { title: "Track a new product — Price Tag" },
       { name: "description", content: "Search by name or paste links to start tracking a new product." },
-      { property: "og:title", content: "Track a new product — Price Tube" },
+      { property: "og:title", content: "Track a new product — Price Tag" },
       { property: "og:description", content: "Search by name or paste links to start tracking a new product." },
       { name: "robots", content: "noindex" },
     ],

@@ -20,13 +20,13 @@ export const Route = createFileRoute("/search")({
   component: SearchPage,
   head: () => ({
     meta: [
-      { title: "Search products — Price Tube" },
+      { title: "Search products — Price Tag" },
       {
         name: "description",
         content:
-          "Search any product by name. Price Tube finds every retailer selling it and compares prices side by side. No sign-up required.",
+          "Search any product by name. Price Tag finds every retailer selling it and compares prices side by side. No sign-up required.",
       },
-      { property: "og:title", content: "Search products — Price Tube" },
+      { property: "og:title", content: "Search products — Price Tag" },
       {
         property: "og:description",
         content:

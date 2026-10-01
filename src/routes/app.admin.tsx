@@ -38,15 +38,15 @@ export const Route = createFileRoute("/app/admin")({
   component: AdminPage,
   head: () => ({
     meta: [
-      { title: "Catalog admin — Price Tube" },
+      { title: "Catalog admin — Price Tag" },
       {
         name: "description",
-        content: "Manage the cached Price Tube product catalog: add, edit, deactivate entries and their store listings.",
+        content: "Manage the cached Price Tag product catalog: add, edit, deactivate entries and their store listings.",
       },
-      { property: "og:title", content: "Catalog admin — Price Tube" },
+      { property: "og:title", content: "Catalog admin — Price Tag" },
       {
         property: "og:description",
-        content: "Manage the cached Price Tube product catalog and its store listings.",
+        content: "Manage the cached Price Tag product catalog and its store listings.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

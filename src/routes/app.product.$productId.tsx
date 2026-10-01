@@ -27,9 +27,9 @@ export const Route = createFileRoute("/app/product/$productId")({
   component: ProductDetail,
   head: () => ({
     meta: [
-      { title: "Product detail — Price Tube" },
+      { title: "Product detail — Price Tag" },
       { name: "description", content: "Compare prices and watch the history for a tracked product across stores." },
-      { property: "og:title", content: "Product detail — Price Tube" },
+      { property: "og:title", content: "Product detail — Price Tag" },
       { property: "og:description", content: "Compare prices and watch the history for a tracked product across stores." },
       { name: "robots", content: "noindex" },
     ],

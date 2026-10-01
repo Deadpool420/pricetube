@@ -11,9 +11,9 @@ export const Route = createFileRoute("/app/")({
   component: Dashboard,
   head: () => ({
     meta: [
-      { title: "Your tracker — Price Tube" },
+      { title: "Your tracker — Price Tag" },
       { name: "description", content: "All the products you're watching and their lowest live prices in one place." },
-      { property: "og:title", content: "Your tracker — Price Tube" },
+      { property: "og:title", content: "Your tracker — Price Tag" },
       { property: "og:description", content: "All the products you're watching and their lowest live prices in one place." },
       { name: "robots", content: "noindex" },
     ],
