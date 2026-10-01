@@ -2,17 +2,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Plus, Pencil, Trash2, Store, Search, ShieldAlert, ExternalLink } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Store, Search, ShieldAlert, ExternalLink, CheckCircle2, XCircle, Wand2 } from "lucide-react";
 import {
   checkIsAdmin,
   listCatalogEntries,
   listCatalogSources,
   saveCatalogEntry,
   setCatalogEntryActive,
+  setCatalogVerification,
   deleteCatalogEntry,
   saveCatalogSource,
   deleteCatalogSource,
 } from "@/lib/admin-catalog.functions";
+import { scrapeProductFromUrl } from "@/lib/price-scraping.functions";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -64,8 +66,16 @@ type Entry = {
   is_active: boolean;
   search_count: number;
   last_refreshed_at: string;
+  verification_status: Status;
   sourceCount: number;
 };
+
+type Status = "verified" | "pending_review" | "rejected";
+const TABS: { key: Status; label: string }[] = [
+  { key: "verified", label: "Verified" },
+  { key: "pending_review", label: "Review queue" },
+  { key: "rejected", label: "Rejected" },
+];
 
 type Source = {
   id: string;
@@ -90,11 +100,15 @@ function AdminPage() {
   const removeEntryFn = useServerFn(deleteCatalogEntry);
   const saveSourceFn = useServerFn(saveCatalogSource);
   const removeSourceFn = useServerFn(deleteCatalogSource);
+  const verifyFn = useServerFn(setCatalogVerification);
+  const scrapeFn = useServerFn(scrapeProductFromUrl);
 
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<Status>("verified");
+  const [fetchingUrl, setFetchingUrl] = useState(false);
 
   const [entryForm, setEntryForm] = useState<typeof emptyEntry & { id?: string }>(emptyEntry);
   const [entryOpen, setEntryOpen] = useState(false);
@@ -107,15 +121,58 @@ function AdminPage() {
   const [sourceForm, setSourceForm] = useState<typeof emptySource & { id?: string }>(emptySource);
   const [savingSource, setSavingSource] = useState(false);
 
-  const refresh = async () => {
+  const refresh = async (status: Status = tab) => {
     setLoading(true);
     try {
-      const res = await listFn({ data: { search: search.trim() || undefined } });
+      const res = await listFn({ data: { search: search.trim() || undefined, status } });
       setEntries(res.entries as Entry[]);
     } catch {
       toast.error("Could not load the catalog.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const changeTab = (t: Status) => {
+    setTab(t);
+    void refresh(t);
+  };
+
+  const setStatus = async (entry: Entry, status: Status) => {
+    try {
+      await verifyFn({ data: { id: entry.id, status } });
+      toast.success(
+        status === "verified" ? "Approved into catalog" : status === "rejected" ? "Rejected" : "Moved to review",
+      );
+      if (sourcesFor?.id === entry.id) setSourcesFor(null);
+      await refresh();
+    } catch {
+      toast.error("Could not update status.");
+    }
+  };
+
+  const fetchFromUrl = async () => {
+    if (!/^https?:\/\//i.test(sourceForm.url.trim())) {
+      toast.error("Paste a full store link first.");
+      return;
+    }
+    setFetchingUrl(true);
+    try {
+      const r = await scrapeFn({ data: { url: sourceForm.url.trim() } });
+      if (!r.ok) throw new Error(r.error);
+      setSourceForm((f) => ({
+        ...f,
+        siteName: f.siteName || r.siteName || "",
+        title: r.title ?? f.title,
+        price: r.price != null ? String(Math.round(r.price)) : f.price,
+        currency: r.currency && r.currency !== "USD" ? r.currency : f.currency || "BDT",
+        imageUrl: r.imageUrl ?? f.imageUrl,
+      }));
+      toast.success("Details fetched — check the price, then save.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not read that page.");
+    } finally {
+      setFetchingUrl(false);
     }
   };
 
@@ -230,7 +287,28 @@ function AdminPage() {
         Add, edit and deactivate cached products, and manage their store listings.
       </p>
 
-      <div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
+      <div className="mt-5 flex gap-1 rounded-full glass p-1" role="tablist">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={tab === t.key}
+            onClick={() => changeTab(t.key)}
+            className={`h-10 flex-1 rounded-full text-sm font-medium transition ${
+              tab === t.key ? "bg-brand-gradient text-primary-foreground shadow-md" : "text-muted-foreground"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {tab === "pending_review" && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Products found by live searches. Open the store listings, delete wrong ones (cases, chargers, other models), then approve.
+        </p>
+      )}
+
+      <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
         {[
           { label: "Entries", value: stats.total },
           { label: "Active", value: stats.active },
@@ -296,7 +374,26 @@ function AdminPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 sm:shrink-0">
+              <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+                {entry.verification_status !== "verified" && (
+                  <button
+                    onClick={() => setStatus(entry, "verified")}
+                    className="flex h-11 items-center gap-1.5 rounded-full bg-brand-gradient px-3 text-xs font-medium text-primary-foreground shadow-md"
+                    aria-label="Approve into catalog"
+                  >
+                    <CheckCircle2 className="h-4 w-4" /> Approve
+                  </button>
+                )}
+                {entry.verification_status !== "rejected" && (
+                  <button
+                    onClick={() => setStatus(entry, "rejected")}
+                    className="grid h-11 w-11 place-items-center rounded-full glass-inset text-muted-foreground transition hover:text-destructive"
+                    aria-label="Reject"
+                    title="Reject"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </button>
+                )}
                 <Switch
                   checked={entry.is_active}
                   aria-label="Active"
@@ -492,13 +589,25 @@ function AdminPage() {
               aria-label="Store name"
               className="h-10 rounded-xl border-white/40 bg-white/70"
             />
-            <Input
-              value={sourceForm.url}
-              onChange={(e) => setSourceForm({ ...sourceForm, url: e.target.value })}
-              placeholder="https://store.com/product"
-              aria-label="Product URL"
-              className="h-10 rounded-xl border-white/40 bg-white/70"
-            />
+            <div className="flex gap-2">
+              <Input
+                value={sourceForm.url}
+                onChange={(e) => setSourceForm({ ...sourceForm, url: e.target.value })}
+                placeholder="Paste exact store product link"
+                aria-label="Product URL"
+                className="h-10 min-w-0 flex-1 rounded-xl border-white/40 bg-white/70"
+              />
+              <button
+                type="button"
+                onClick={fetchFromUrl}
+                disabled={fetchingUrl}
+                className="flex h-10 shrink-0 items-center gap-1.5 rounded-full glass px-3 text-xs font-medium disabled:opacity-60"
+                aria-label="Fetch price from link"
+              >
+                {fetchingUrl ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                Fetch
+              </button>
+            </div>
             <Input
               value={sourceForm.title}
               onChange={(e) => setSourceForm({ ...sourceForm, title: e.target.value })}
