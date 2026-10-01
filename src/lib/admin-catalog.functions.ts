@@ -136,7 +136,9 @@ export const setCatalogVerification = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context as Ctx);
-    const patch: Record<string, unknown> = { verification_status: data.status };
+    const patch: { verification_status: string; is_active?: boolean; last_refreshed_at?: string } = {
+      verification_status: data.status,
+    };
     if (data.status === "verified") {
       patch.is_active = true;
       patch.last_refreshed_at = new Date().toISOString();
