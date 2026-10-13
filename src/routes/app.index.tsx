@@ -6,6 +6,8 @@ import { Package, TrendingDown, Heart, ArrowDown, ArrowUp, Clock, Search, Refres
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { refreshUserPrices } from "@/lib/price-refresh.functions";
+import { SafeImage } from "@/components/safe-image";
+import { isLowestEligible } from "@/lib/offer-filters";
 
 export const Route = createFileRoute("/app/")({
   component: Dashboard,
@@ -29,6 +31,7 @@ type DashboardProduct = {
     id: string;
     site_name: string;
     current_price: number | null;
+    in_stock: boolean;
     currency: string | null;
     last_checked_at: string | null;
     price_history: { price: number; recorded_at: string }[];
@@ -61,7 +64,7 @@ function Dashboard() {
       const { data, error } = await supabase
         .from("products")
         .select(
-          "id, name, image_url, created_at, product_sources(id, site_name, current_price, currency, last_checked_at, price_history(price, recorded_at)), wishlist(product_id)",
+          "id, name, image_url, created_at, product_sources(id, site_name, current_price, in_stock, currency, last_checked_at, price_history(price, recorded_at)), wishlist(product_id)",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -76,14 +79,24 @@ function Dashboard() {
     const last = Number(localStorage.getItem(key) || 0);
     if (Date.now() - last < 24 * 60 * 60 * 1000) return;
     triggered.current = true;
-    refresh({}).then((r) => {
-      if (r.ok) {
+    (async () => {
+      let anyRefreshed = false;
+      let ok = false;
+      // Small batches per call; keep going until nothing remains (max 3 rounds).
+      for (let round = 0; round < 3; round++) {
+        const r = await refresh({}).catch(() => null);
+        if (!r || !r.ok) break;
+        ok = true;
+        if (r.refreshed > 0) anyRefreshed = true;
+        if (!r.remaining) break;
+      }
+      if (ok) {
         const now = Date.now();
         localStorage.setItem(key, String(now));
         setLastRefresh(now);
-        if (r.refreshed > 0) qc.invalidateQueries({ queryKey: ["products", user.id] });
       }
-    });
+      if (anyRefreshed) qc.invalidateQueries({ queryKey: ["products", user.id] });
+    })();
   }, [user, refresh, qc]);
 
   const toggleWishlist = async (productId: string, currentlyWished: boolean) => {
@@ -202,10 +215,12 @@ function ProductCard({
   onToggleWishlist: (id: string, wished: boolean) => void;
 }) {
   const prices = product.product_sources
-    .map((s) => s.current_price)
-    .filter((p): p is number => typeof p === "number" && p > 0);
+    .filter(isLowestEligible)
+    .map((s) => s.current_price as number);
   const lowest = prices.length ? Math.min(...prices) : null;
-  const lowestSource = product.product_sources.find((s) => s.current_price === lowest);
+  const lowestSource = product.product_sources.find(
+    (s) => isLowestEligible(s) && s.current_price === lowest,
+  );
   const currency = lowestSource?.currency && lowestSource.currency !== "USD"
     ? lowestSource.currency
     : "BDT";
@@ -265,13 +280,7 @@ function ProductCard({
       <Link to="/app/product/$productId" params={{ productId: product.id }} className="block">
         <div className="flex items-start gap-4 pr-10">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white/60 p-1.5">
-            {product.image_url ? (
-              <img src={product.image_url} alt="" className="h-full w-full object-contain" />
-            ) : (
-              <div className="grid h-full w-full place-items-center text-muted-foreground">
-                <Package className="h-6 w-6" />
-              </div>
-            )}
+            <SafeImage src={product.image_url} />
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="line-clamp-2 font-display text-sm font-semibold leading-tight break-words">

@@ -1,3 +1,4 @@
+import { storeNameFromUrl } from "./store-names";
 // Server-only helpers for the shared product price cache.
 // Reads go through the admin client too (cheap, server-side only) so the
 // catalog stays server-owned: users can read it, but only the server writes.
@@ -10,6 +11,7 @@ export type CachedOffer = {
   imageUrl: string | null;
   siteName: string;
   description: string | null;
+  inStock: boolean;
 };
 
 export type CacheHit = {
@@ -23,14 +25,8 @@ export type CacheHit = {
 /** Days a cached entry is considered fresh enough to serve without scraping. */
 export const CACHE_FRESH_DAYS = 7;
 
-export function normalizeSearchKey(query: string): string {
-  return query
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+import { normalizeSearchKey, buildAliases } from "./search-key";
+export { normalizeSearchKey, buildAliases };
 
 export function isFresh(lastRefreshedAt: string): boolean {
   const age = Date.now() - new Date(lastRefreshedAt).getTime();
@@ -46,16 +42,20 @@ async function admin() {
 export async function lookupCatalog(searchKey: string): Promise<CacheHit | null> {
   try {
     const db = await admin();
-    const { data, error } = await db
+    if (!searchKey) return null;
+    const { data: rows, error } = await db
       .from("product_catalog")
-      .select("id, display_name, image_url, last_refreshed_at, is_active, verification_status")
-      .eq("search_key", searchKey)
-      .maybeSingle();
-    if (error || !data || !data.is_active || data.verification_status !== "verified") return null;
+      .select("id, search_key, display_name, image_url, last_refreshed_at, is_active, verification_status")
+      .or(`search_key.eq."${searchKey.replace(/"/g, "")}",aliases.cs.{"${searchKey.replace(/"/g, "")}"}`)
+      .eq("is_active", true)
+      .eq("verification_status", "verified")
+      .limit(5);
+    if (error || !rows || rows.length === 0) return null;
+    const data = rows.find((r) => r.search_key === searchKey) ?? rows[0];
 
     const { data: sources } = await db
       .from("catalog_sources")
-      .select("url, title, description, price, currency, image_url, site_name")
+      .select("url, title, description, price, currency, image_url, site_name, in_stock")
       .eq("catalog_id", data.id);
 
     const offers: CachedOffer[] = (sources ?? []).map((s) => ({
@@ -64,8 +64,9 @@ export async function lookupCatalog(searchKey: string): Promise<CacheHit | null>
       price: s.price === null ? null : Number(s.price),
       currency: s.currency ?? "BDT",
       imageUrl: s.image_url ?? null,
-      siteName: s.site_name,
+      siteName: storeNameFromUrl(s.url),
       description: s.description ?? null,
+      inStock: s.in_stock !== false,
     }));
 
     return {
@@ -157,6 +158,7 @@ export async function saveToCatalog(args: {
         .from("product_catalog")
         .insert({
           search_key: args.searchKey,
+          aliases: buildAliases(args.searchKey),
           display_name: args.displayName,
           category: args.category,
           image_url: withImage?.imageUrl ?? null,
@@ -181,13 +183,14 @@ export async function saveToCatalog(args: {
       })
       .map((o) => ({
         catalog_id: catalogId,
-        site_name: o.siteName,
+        site_name: storeNameFromUrl(o.url),
         url: o.url,
         title: o.title,
         description: o.description,
         price: o.price,
         currency: o.currency || "BDT",
         image_url: o.imageUrl,
+        in_stock: o.inStock !== false,
         last_checked_at: now,
       }));
 
