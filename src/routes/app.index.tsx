@@ -76,14 +76,24 @@ function Dashboard() {
     const last = Number(localStorage.getItem(key) || 0);
     if (Date.now() - last < 24 * 60 * 60 * 1000) return;
     triggered.current = true;
-    refresh({}).then((r) => {
-      if (r.ok) {
+    (async () => {
+      let anyRefreshed = false;
+      let ok = false;
+      // Small batches per call; keep going until nothing remains (max 3 rounds).
+      for (let round = 0; round < 3; round++) {
+        const r = await refresh({}).catch(() => null);
+        if (!r || !r.ok) break;
+        ok = true;
+        if (r.refreshed > 0) anyRefreshed = true;
+        if (!r.remaining) break;
+      }
+      if (ok) {
         const now = Date.now();
         localStorage.setItem(key, String(now));
         setLastRefresh(now);
-        if (r.refreshed > 0) qc.invalidateQueries({ queryKey: ["products", user.id] });
       }
-    });
+      if (anyRefreshed) qc.invalidateQueries({ queryKey: ["products", user.id] });
+    })();
   }, [user, refresh, qc]);
 
   const toggleWishlist = async (productId: string, currentlyWished: boolean) => {
