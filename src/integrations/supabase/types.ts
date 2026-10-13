@@ -22,6 +22,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          in_stock: boolean
           last_checked_at: string
           price: number | null
           site_name: string
@@ -35,6 +36,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          in_stock?: boolean
           last_checked_at?: string
           price?: number | null
           site_name: string
@@ -48,6 +50,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          in_stock?: boolean
           last_checked_at?: string
           price?: number | null
           site_name?: string
@@ -137,6 +140,7 @@ export type Database = {
       }
       product_catalog: {
         Row: {
+          aliases: string[]
           category: string
           created_at: string
           display_name: string
@@ -151,6 +155,7 @@ export type Database = {
           verification_status: string
         }
         Insert: {
+          aliases?: string[]
           category?: string
           created_at?: string
           display_name: string
@@ -165,6 +170,7 @@ export type Database = {
           verification_status?: string
         }
         Update: {
+          aliases?: string[]
           category?: string
           created_at?: string
           display_name?: string
@@ -185,7 +191,9 @@ export type Database = {
           created_at: string
           currency: string | null
           current_price: number | null
+          fail_count: number
           id: string
+          in_stock: boolean
           last_checked_at: string | null
           product_id: string
           site_name: string
@@ -197,7 +205,9 @@ export type Database = {
           created_at?: string
           currency?: string | null
           current_price?: number | null
+          fail_count?: number
           id?: string
+          in_stock?: boolean
           last_checked_at?: string | null
           product_id: string
           site_name: string
@@ -209,7 +219,9 @@ export type Database = {
           created_at?: string
           currency?: string | null
           current_price?: number | null
+          fail_count?: number
           id?: string
+          in_stock?: boolean
           last_checked_at?: string | null
           product_id?: string
           site_name?: string
