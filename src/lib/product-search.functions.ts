@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { storeNameFromUrl } from "./store-names";
+import { junkReason, markSuspicious, isLowestEligible } from "./offer-filters";
 
 const CATEGORY_RETAILERS: Record<string, string[]> = {
   SMARTPHONES: [
@@ -13,6 +15,12 @@ const CATEGORY_RETAILERS: Record<string, string[]> = {
     "tahamtech.com.bd",
     "gsm-bd.com",
     "mobiledokanbd.com",
+    "mobiledokan.com",
+    "sumashtech.com",
+    "techdokan.com.bd",
+    "gadgetandgear.com",
+    "ryans.com",
+    "startech.com.bd",
   ],
   COMPUTERS: [
     "startech.com.bd",
@@ -455,12 +463,13 @@ type Offer = {
   siteName: string;
   description: string | null;
   suspiciousPrice?: boolean;
+  inStock: boolean;
 };
 
 const scrapeJsonFormat = {
   type: "json" as const,
   prompt:
-    "Extract the product information from this product page. Return the product title, the current price as a number (without currency symbols), the ISO currency code (BDT for Bangladeshi Taka, USD for US Dollar, etc — if the price is shown in Bangladeshi Taka or the site is a Bangladeshi retailer, ALWAYS return 'BDT'), the main product image URL, and the merchant/site name. If this is not a product page, return null for price.",
+    "Extract the product information from this product page. Return the product title, the current price as a number (without currency symbols), the ISO currency code (BDT for Bangladeshi Taka, USD for US Dollar, etc — if the price is shown in Bangladeshi Taka or the site is a Bangladeshi retailer, ALWAYS return 'BDT'), the main product image URL, and inStock (false if the page says out of stock, sold out, unavailable, upcoming or coming soon; otherwise true). If this is not a product page, return null for price.",
   schema: {
     type: "object",
     properties: {
@@ -468,7 +477,7 @@ const scrapeJsonFormat = {
       price: { type: ["number", "null"] },
       currency: { type: "string" },
       imageUrl: { type: "string" },
-      siteName: { type: "string" },
+      inStock: { type: "boolean" },
     },
   },
 };
@@ -515,7 +524,7 @@ async function runFirecrawlSearch(
           price?: number | null;
           currency?: string;
           imageUrl?: string;
-          siteName?: string;
+          inStock?: boolean;
         };
         metadata?: { title?: string; ogImage?: string };
       }>;
@@ -528,11 +537,7 @@ async function runFirecrawlSearch(
       if (!/^https?:\/\//i.test(url)) return null;
       if (isExcluded(url)) return null;
       const j = r.json ?? {};
-      let siteName = j.siteName;
-      if (!siteName) {
-        const host = hostOf(url);
-        siteName = host ? host.split(".")[0].replace(/^\w/, (c) => c.toUpperCase()) : "Unknown";
-      }
+      const siteName = storeNameFromUrl(url);
       const isBDHost =
         url.includes(".bd/") ||
         url.includes(".bd?") ||
@@ -563,6 +568,7 @@ async function runFirecrawlSearch(
         imageUrl: j.imageUrl ?? r.metadata?.ogImage ?? null,
         siteName,
         description: r.description ?? null,
+        inStock: j.inStock !== false,
       };
     })
     .filter((x): x is Offer => x !== null);
@@ -588,7 +594,7 @@ export const searchProductOffers = createServerFn({ method: "POST" })
         void cache.recordCatalogHit(hit.catalogId, await cache.getSearchCount(hit.catalogId));
         return {
           ok: true as const,
-          offers: hit.offers,
+          offers: markSuspicious(hit.offers),
           fromCache: true as const,
           verified: true as const,
           cachedAt: hit.lastRefreshedAt,
@@ -636,6 +642,9 @@ export const searchProductOffers = createServerFn({ method: "POST" })
 
       offers = offers.filter((o) => o.currency !== "INR");
 
+      // Junk filter: listing pages, placeholders, wrong model/variant, accessories.
+      offers = offers.filter((o) => junkReason(data.query, detected.category, o) === null);
+
       const isCategoryTrusted = (o: Offer) => {
         const h = hostOf(o.url);
         return categoryRetailers.some((d) => h === d || h.endsWith(`.${d}`));
@@ -675,12 +684,10 @@ export const searchProductOffers = createServerFn({ method: "POST" })
           byHost.set(key, o);
         }
       }
-      offers = Array.from(byHost.values());
+      offers = markSuspicious(Array.from(byHost.values()));
 
       const priceKey = (o: Offer) =>
-        typeof o.price === "number" && o.price > 0
-          ? o.price
-          : Number.POSITIVE_INFINITY;
+        isLowestEligible(o) ? (o.price as number) : Number.POSITIVE_INFINITY;
 
       const rank = (a: Offer, b: Offer) => {
         // Priced offers ahead of unavailable ones, then relevance, then price.
@@ -710,6 +717,7 @@ export const searchProductOffers = createServerFn({ method: "POST" })
           imageUrl: o.imageUrl,
           siteName: o.siteName,
           description: o.description,
+          inStock: o.inStock,
         })),
       });
 
