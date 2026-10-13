@@ -284,6 +284,21 @@ export type Database = {
         }
         Relationships: []
       }
+      system_heartbeat: {
+        Row: {
+          beat_at: string
+          id: number
+        }
+        Insert: {
+          beat_at?: string
+          id?: number
+        }
+        Update: {
+          beat_at?: string
+          id?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
