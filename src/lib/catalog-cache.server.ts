@@ -55,8 +55,9 @@ export async function lookupCatalog(searchKey: string): Promise<CacheHit | null>
 
     const { data: sources } = await db
       .from("catalog_sources")
-      .select("url, title, description, price, currency, image_url, site_name, in_stock")
-      .eq("catalog_id", data.id);
+      .select("url, title, description, price, currency, image_url, site_name, in_stock, verified")
+      .eq("catalog_id", data.id)
+      .or("verified.is.null,verified.eq.true");
 
     const offers: CachedOffer[] = (sources ?? []).map((s) => ({
       url: s.url,
@@ -64,7 +65,7 @@ export async function lookupCatalog(searchKey: string): Promise<CacheHit | null>
       price: s.price === null ? null : Number(s.price),
       currency: s.currency ?? "BDT",
       imageUrl: s.image_url ?? null,
-      siteName: storeNameFromUrl(s.url),
+      siteName: s.site_name || storeNameFromUrl(s.url),
       description: s.description ?? null,
       inStock: s.in_stock !== false,
     }));
@@ -203,5 +204,54 @@ export async function saveToCatalog(args: {
   } catch (err) {
     console.error("saveToCatalog failed", err);
     return null;
+  }
+}
+
+/** Fallback: verified entry whose key contains every query word (e.g. "s26 ultra"). */
+export async function fuzzyLookupCatalog(searchKey: string): Promise<CacheHit | null> {
+  try {
+    const words = searchKey.split(" ").filter((w) => w.length >= 2).slice(0, 6);
+    if (words.length === 0) return null;
+    const db = await admin();
+    let q = db
+      .from("product_catalog")
+      .select("search_key")
+      .eq("is_active", true)
+      .eq("verification_status", "verified");
+    for (const w of words) q = q.ilike("search_key", `%${w.replace(/[%_,()]/g, "")}%`);
+    const { data } = await q.order("search_count", { ascending: false }).limit(1);
+    if (!data || data.length === 0) return null;
+    return lookupCatalog(data[0].search_key);
+  } catch {
+    return null;
+  }
+}
+
+/** Store a user request as an empty pending_review entry (no-op if the key exists). */
+export async function recordProductRequest(searchKey: string, displayName: string): Promise<boolean> {
+  try {
+    const db = await admin();
+    const { data: existing } = await db
+      .from("product_catalog")
+      .select("id, search_count")
+      .eq("search_key", searchKey)
+      .maybeSingle();
+    if (existing) {
+      await db
+        .from("product_catalog")
+        .update({ search_count: (existing.search_count ?? 0) + 1, last_searched_at: new Date().toISOString() })
+        .eq("id", existing.id);
+      return true;
+    }
+    const { error } = await db.from("product_catalog").insert({
+      search_key: searchKey,
+      aliases: buildAliases(searchKey),
+      display_name: displayName.slice(0, 200),
+      category: "SMARTPHONES",
+      verification_status: "pending_review",
+    });
+    return !error;
+  } catch {
+    return false;
   }
 }
