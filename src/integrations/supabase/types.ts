@@ -28,6 +28,7 @@ export type Database = {
           site_name: string
           title: string | null
           url: string
+          verified: boolean | null
         }
         Insert: {
           catalog_id: string
@@ -42,6 +43,7 @@ export type Database = {
           site_name: string
           title?: string | null
           url: string
+          verified?: boolean | null
         }
         Update: {
           catalog_id?: string
@@ -56,6 +58,7 @@ export type Database = {
           site_name?: string
           title?: string | null
           url?: string
+          verified?: boolean | null
         }
         Relationships: [
           {

@@ -17,10 +17,19 @@ export const scrapeProductFromUrl = createServerFn({ method: "POST" })
           .refine((u) => /^https?:\/\//i.test(u), {
             message: "Only http/https URLs are allowed",
           }),
+        confirmed: z.boolean().optional(),
       })
       .parse(input),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    // Firecrawl is admin-only and must be explicitly confirmed (uses credits).
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (isAdmin !== true || data.confirmed !== true) {
+      return { ok: false as const, error: "Live fetching is turned off. Add prices from the catalog admin." };
+    }
     const apiKey = process.env.FIRECRAWL_API_KEY;
     if (!apiKey) {
       return {
