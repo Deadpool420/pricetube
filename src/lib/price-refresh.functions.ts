@@ -59,6 +59,9 @@ export async function scrapeOne(url: string, apiKey: string): Promise<ScrapeResu
 export const refreshUserPrices = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    // Automatic Firecrawl refreshes are switched off to save credits.
+    const AUTO_REFRESH_ENABLED = false as boolean;
+    if (!AUTO_REFRESH_ENABLED) return { ok: true as const, refreshed: 0, drops: 0, remaining: 0 };
     const { supabase, userId } = context;
     const apiKey = process.env.FIRECRAWL_API_KEY;
     if (!apiKey) return { ok: false as const, refreshed: 0, drops: 0, remaining: 0, error: "Not configured" };

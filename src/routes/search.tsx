@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Loader2, Search, Package, Check, Sparkles, X, AlertTriangle } from "lucide-react";
-import { searchProductOffers } from "@/lib/product-search.functions";
+import { searchProductOffers, requestCatalogProduct } from "@/lib/product-search.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useCountry } from "@/hooks/use-country";
@@ -67,6 +67,9 @@ function SearchPage() {
   const navigate = useNavigate();
   const { q } = Route.useSearch();
   const search = useServerFn(searchProductOffers);
+  const requestFn = useServerFn(requestCatalogProduct);
+  const [notInCatalog, setNotInCatalog] = useState(false);
+  const [requested, setRequested] = useState(false);
 
   const [query, setQuery] = useState(q ?? "");
   const [searching, setSearching] = useState(false);
@@ -91,9 +94,8 @@ function SearchPage() {
         toast.error(r.error);
         return;
       }
-      if (r.offers.length === 0) {
-        toast.message("No results found. Try a different search.");
-      }
+      setNotInCatalog(r.notInCatalog);
+      setRequested(false);
       setOffers(r.offers);
       setCachedAt(r.cachedAt ?? null);
       setFromCache(Boolean(r.fromCache));
@@ -278,14 +280,7 @@ function SearchPage() {
                       {timeAgo(cachedAt)}
                     </span>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => lastTerm && runSearch(lastTerm, true)}
-                    className="glass glass-hover rounded-full px-3 py-1.5 text-xs font-medium"
-                    aria-label="Refresh prices from retailers"
-                  >
-                    Refresh prices
-                  </button>
+
                 </div>
               </div>
 
@@ -393,8 +388,26 @@ function SearchPage() {
           )}
 
           {!searching && offers && offers.length === 0 && (
-            <div className="mt-6 glass rounded-2xl p-10 text-center text-sm text-muted-foreground">
-              No offers found. Try a more specific name.
+            <div className="mt-6 glass rounded-2xl p-8 text-center text-sm text-muted-foreground">
+              <div className="font-display text-base font-semibold text-foreground">
+                {notInCatalog ? "Not in catalog yet" : "No offers found"}
+              </div>
+              <p className="mt-1">We only show prices we have checked. Ask us to add this product.</p>
+              <button
+                type="button"
+                disabled={requested || !lastTerm}
+                onClick={async () => {
+                  if (!lastTerm) return;
+                  const r = await requestFn({ data: { query: lastTerm } }).catch(() => null);
+                  if (r?.ok) {
+                    setRequested(true);
+                    toast.success("Request sent");
+                  } else toast.error("Could not send the request");
+                }}
+                className="mt-4 min-h-11 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground disabled:opacity-60"
+              >
+                {requested ? "Requested ✓" : "Request this product"}
+              </button>
             </div>
           )}
         </div>
