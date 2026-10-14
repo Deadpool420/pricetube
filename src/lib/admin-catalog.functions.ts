@@ -1,6 +1,18 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { buildAliases } from "./search-key";
+
+const KEY_NOISE = new Set(["bangladesh", "bd", "price", "buy", "online", "taka", "review", "latest", "new"]);
+/** Lowercase, no punctuation, noise words removed. */
+export function generateSearchKey(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter((w) => w && !KEY_NOISE.has(w))
+    .join(" ");
+}
 
 type Ctx = { supabase: any; userId: string };
 
@@ -89,7 +101,7 @@ export const saveCatalogEntry = createServerFn({ method: "POST" })
     z
       .object({
         id: z.string().uuid().optional(),
-        searchKey: z.string().trim().min(2).max(200),
+        searchKey: z.string().trim().max(200).optional(),
         displayName: z.string().trim().min(2).max(200),
         category: z.string().trim().min(2).max(50),
         imageUrl: z.union([urlSchema, z.literal("")]).optional(),
@@ -100,7 +112,7 @@ export const saveCatalogEntry = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context as Ctx);
     const payload = {
-      search_key: data.searchKey.toLowerCase().replace(/\s+/g, " ").trim(),
+      search_key: generateSearchKey(data.searchKey || data.displayName),
       display_name: data.displayName,
       category: data.category.toUpperCase(),
       image_url: data.imageUrl || null,
@@ -117,7 +129,7 @@ export const saveCatalogEntry = createServerFn({ method: "POST" })
     // Entries created by hand in admin are curated, so they start verified.
     const { data: inserted, error } = await context.supabase
       .from("product_catalog")
-      .insert({ ...payload, verification_status: "verified" })
+      .insert({ ...payload, aliases: buildAliases(payload.search_key), verification_status: "verified" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
@@ -187,7 +199,10 @@ export const saveCatalogSource = createServerFn({ method: "POST" })
         siteName: z.string().trim().min(1).max(100),
         url: urlSchema,
         title: optionalText,
-        price: z.number().nonnegative().max(100000000).nullable().optional(),
+        description: optionalText,
+        inStock: z.boolean().optional(),
+        verified: z.boolean().optional(),
+        price: z.number().positive("Price must be more than 0").max(100000000),
         currency: z.string().trim().min(1).max(10),
         imageUrl: z.union([urlSchema, z.literal("")]).optional(),
       })
@@ -200,7 +215,9 @@ export const saveCatalogSource = createServerFn({ method: "POST" })
       site_name: data.siteName,
       url: data.url,
       title: data.title || null,
-      price: data.price ?? null,
+      description: data.description || null,
+      in_stock: data.inStock ?? true,
+      price: Math.round(data.price),
       currency: data.currency.toUpperCase(),
       image_url: data.imageUrl || null,
       last_checked_at: new Date().toISOString(),
@@ -211,11 +228,15 @@ export const saveCatalogSource = createServerFn({ method: "POST" })
         .update(payload)
         .eq("id", data.id);
       if (error) throw new Error(error.message);
+      if (data.verified !== undefined) {
+        await context.supabase.from("catalog_sources").update({ verified: data.verified }).eq("id", data.id);
+      }
       return { id: data.id };
     }
+    // Listings added by hand in admin are curated, so they start verified.
     const { data: inserted, error } = await context.supabase
       .from("catalog_sources")
-      .insert(payload)
+      .insert({ ...payload, verified: data.verified ?? true })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
@@ -228,6 +249,40 @@ export const deleteCatalogSource = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context as Ctx);
     const { error } = await context.supabase.from("catalog_sources").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+export const listAdminData = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context as Ctx);
+    const [p, s] = await Promise.all([
+      context.supabase
+        .from("product_catalog")
+        .select("id, search_key, display_name, category, image_url, is_active, verification_status, last_refreshed_at")
+        .order("display_name")
+        .limit(1000),
+      context.supabase
+        .from("catalog_sources")
+        .select("id, catalog_id, site_name, url, title, description, price, currency, image_url, in_stock, verified, last_checked_at")
+        .order("last_checked_at", { ascending: false })
+        .limit(2000),
+    ]);
+    if (p.error) throw new Error(p.error.message);
+    if (s.error) throw new Error(s.error.message);
+    return { products: p.data ?? [], sources: s.data ?? [] };
+  });
+
+export const setSourceVerified = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid(), verified: z.boolean() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as Ctx);
+    const { error } = await context.supabase
+      .from("catalog_sources")
+      .update({ verified: data.verified })
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
