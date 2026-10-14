@@ -112,7 +112,10 @@ export const saveCatalogEntry = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context as Ctx);
     const payload = {
-      search_key: generateSearchKey(data.searchKey || data.displayName),
+      search_key:
+        data.id && data.searchKey
+          ? data.searchKey.toLowerCase().replace(/\s+/g, " ").trim()
+          : generateSearchKey(data.displayName),
       display_name: data.displayName,
       category: data.category.toUpperCase(),
       image_url: data.imageUrl || null,
