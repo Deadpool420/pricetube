@@ -8,6 +8,13 @@
       "when": 1791873663020,
       "tag": "0000_aliases_stock_failcount",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791987423324,
+      "tag": "0001_catalog_sources_verified",
+      "breakpoints": true
     }
   ]
 }

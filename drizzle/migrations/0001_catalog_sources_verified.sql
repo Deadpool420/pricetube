@@ -1,0 +1,2 @@
+ALTER TABLE public.catalog_sources ADD COLUMN IF NOT EXISTS verified boolean;
+COMMENT ON COLUMN public.catalog_sources.verified IS 'Per-listing review: NULL inherits the product verification status, true/false set by admin.';
