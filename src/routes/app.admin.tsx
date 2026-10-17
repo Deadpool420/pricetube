@@ -846,3 +846,258 @@ function ProductSheet({ p, onClose, onSaved }: { p: Product; onClose: () => void
     </Sheet>
   );
 }
+
+type LinkDraft = {
+  url: string;
+  error?: string;
+  warning: string | null;
+  productId: string;
+  name: string;
+  category: string;
+  store: string;
+  price: string;
+  image: string;
+  title: string;
+  description: string;
+  inStock: boolean;
+  status?: { kind: "added" | "updated" | "skipped"; reason?: string };
+};
+
+function suggestProduct(products: Product[], title: string): string {
+  const key = generateSearchKey(title);
+  const exact = products.find((p) => p.search_key === key);
+  if (exact) return exact.id;
+  const tw = new Set(key.split(" "));
+  let best = "";
+  let bestScore = 0;
+  for (const p of products) {
+    const pw = p.search_key.split(" ").filter(Boolean);
+    if (pw.length === 0 || !pw.every((w) => tw.has(w))) continue;
+    if (pw.length > bestScore) {
+      bestScore = pw.length;
+      best = p.id;
+    }
+  }
+  return best;
+}
+
+function LinkSheet({ products, listings, onClose, onSaved }: { products: Product[]; listings: Listing[]; onClose: () => void; onSaved: () => void }) {
+  const fetchFn = useServerFn(fetchProductLinks);
+  const saveProductFn = useServerFn(saveCatalogEntry);
+  const saveFn = useServerFn(saveCatalogSource);
+  const [text, setText] = useState("");
+  const [fetching, setFetching] = useState(false);
+  const [drafts, setDrafts] = useState<LinkDraft[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  const urls = text.split(/\s+/).map((s) => s.trim()).filter(Boolean);
+
+  const runFetch = async () => {
+    if (urls.length === 0) return toast.error("Paste at least one link");
+    if (urls.length > 10) return toast.error("Up to 10 links per run");
+    setFetching(true);
+    try {
+      const { results } = await fetchFn({ data: { urls } });
+      setDrafts(
+        results.map((r: any): LinkDraft => {
+          if (!r.ok) {
+            return { url: r.url, error: r.error, warning: null, productId: "", name: "", category: "SMARTPHONES", store: "", price: "", image: "", title: "", description: "", inStock: true };
+          }
+          const warning = r.looksListing
+            ? "Looks like a category or search page"
+            : r.expectedPrice
+              ? "Price is labelled expected/upcoming"
+              : !r.price
+                ? "No price found"
+                : null;
+          const desc = [r.official, (r.variants as string[]).join(", ")].filter(Boolean).join(" · ");
+          return {
+            url: r.url,
+            warning,
+            productId: suggestProduct(products, r.title),
+            name: r.title,
+            category: "SMARTPHONES",
+            store: r.store,
+            price: warning || !r.price ? "" : String(r.price),
+            image: r.imageUrl,
+            title: r.title,
+            description: desc,
+            inStock: r.inStock,
+          };
+        }),
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Fetch failed");
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  const update = (i: number, patch: Partial<LinkDraft>) => setDrafts((d) => d.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const canSave = (d: LinkDraft) => !d.error && !d.status && Number(d.price) > 0 && (!!d.productId || d.name.trim().length >= 2) && !!d.store.trim();
+
+  const saveOne = async (i: number, d: LinkDraft) => {
+    try {
+      let catalogId = d.productId;
+      if (!catalogId) {
+        const key = generateSearchKey(d.name);
+        const existing = products.find((p) => p.search_key === key);
+        catalogId = existing
+          ? existing.id
+          : (await saveProductFn({ data: { displayName: d.name.trim(), category: d.category || "SMARTPHONES", imageUrl: d.image, isActive: true } })).id;
+      }
+      const dup = listings.find((l) => l.catalog_id === catalogId && l.url === d.url);
+      await saveFn({
+        data: {
+          id: dup?.id,
+          catalogId,
+          siteName: d.store.trim(),
+          url: d.url,
+          title: d.title || null,
+          description: d.description || null,
+          inStock: d.inStock,
+          verified: true,
+          price: Number(d.price),
+          currency: "BDT",
+          imageUrl: d.image,
+        },
+      });
+      update(i, { status: { kind: dup ? "updated" : "added" }, productId: catalogId });
+    } catch (e) {
+      update(i, { status: { kind: "skipped", reason: e instanceof Error ? e.message : "Could not save" } });
+    }
+  };
+
+  const saveAll = async () => {
+    setBusy(true);
+    for (let i = 0; i < drafts.length; i++) {
+      const d = drafts[i];
+      if (d.status) continue;
+      if (!canSave(d)) {
+        update(i, { status: { kind: "skipped", reason: d.error ?? d.warning ?? "Missing price, product or store" } });
+        continue;
+      }
+      await saveOne(i, d);
+    }
+    setBusy(false);
+    onSaved();
+  };
+
+  const done = drafts.filter((d) => d.status);
+
+  return (
+    <Sheet
+      title="Add by link"
+      onClose={onClose}
+      footer={
+        drafts.length === 0 ? (
+          <button onClick={runFetch} disabled={fetching} className={`${primaryBtn} flex w-full items-center justify-center gap-2`}>
+            {fetching ? <Loader2 className="h-5 w-5 animate-spin" /> : <LinkIcon className="h-5 w-5" />} Fetch
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <button onClick={() => setDrafts([])} disabled={busy} className={`${ghostBtn} flex-1`}>New links</button>
+            <button onClick={saveAll} disabled={busy} className={`${primaryBtn} flex flex-1 items-center justify-center gap-2`}>
+              {busy && <Loader2 className="h-5 w-5 animate-spin" />} Save all valid
+            </button>
+          </div>
+        )
+      }
+    >
+      {drafts.length === 0 ? (
+        <Field label="Product links (one per line, max 10)">
+          <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} inputMode="url" placeholder="https://www.startech.com.bd/..." className="min-h-48 text-base" />
+        </Field>
+      ) : (
+        <>
+          {done.length > 0 && (
+            <div className="glass rounded-2xl p-3 text-sm">
+              <p className="font-semibold">
+                {done.filter((d) => d.status?.kind === "added").length} added · {done.filter((d) => d.status?.kind === "updated").length} updated ·{" "}
+                {done.filter((d) => d.status?.kind === "skipped").length} skipped
+              </p>
+              <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+                {done.map((d, i) => (
+                  <li key={d.url + i} className="break-all">
+                    <span className="font-medium text-foreground">{d.status?.kind}</span> — {d.url}
+                    {d.status?.reason ? ` (${d.status.reason})` : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {drafts.map((d, i) => (
+            <div key={d.url + i} className="glass space-y-3 rounded-2xl p-3">
+              <p className="break-all text-xs text-muted-foreground">{d.url}</p>
+              {d.error ? (
+                <p className="flex items-center gap-2 text-sm text-destructive"><AlertTriangle className="h-4 w-4 shrink-0" /> {d.error}</p>
+              ) : (
+                <>
+                  {d.warning && (
+                    <p className="flex items-center gap-2 rounded-xl bg-destructive/10 p-2 text-sm text-destructive">
+                      <AlertTriangle className="h-4 w-4 shrink-0" /> {d.warning} — type the price by hand to save.
+                    </p>
+                  )}
+                  <Field label="Product">
+                    <select value={d.productId} onChange={(e) => update(i, { productId: e.target.value })} className="h-12 w-full rounded-xl border border-input bg-background px-3 text-base">
+                      <option value="">New product</option>
+                      {products.map((p) => (
+                        <option key={p.id} value={p.id}>{p.display_name}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  {!d.productId && (
+                    <>
+                      <Field label="Display name">
+                        <Input className="h-12 text-base" value={d.name} onChange={(e) => update(i, { name: e.target.value })} />
+                      </Field>
+                      <Field label="Category">
+                        <Input className="h-12 text-base" value={d.category} onChange={(e) => update(i, { category: e.target.value })} />
+                      </Field>
+                    </>
+                  )}
+                  <Field label="Store">
+                    <Input className="h-12 text-base" value={d.store} onChange={(e) => update(i, { store: e.target.value })} />
+                  </Field>
+                  <Field label="Price (BDT)">
+                    <Input className="h-12 text-base" inputMode="numeric" value={d.price} onChange={(e) => update(i, { price: e.target.value.replace(/[^\d]/g, "") })} />
+                  </Field>
+                  <Field label="Image URL">
+                    <Input className="h-12 text-base" value={d.image} onChange={(e) => update(i, { image: e.target.value })} />
+                    <ImagePreview url={d.image} />
+                  </Field>
+                  <Field label="Listing title">
+                    <Input className="h-12 text-base" value={d.title} onChange={(e) => update(i, { title: e.target.value })} />
+                  </Field>
+                  <Field label="Description">
+                    <Textarea className="text-base" rows={2} value={d.description} onChange={(e) => update(i, { description: e.target.value })} />
+                  </Field>
+                  <div className="flex min-h-12 items-center justify-between">
+                    <span className="text-sm font-medium">In stock</span>
+                    <Switch checked={d.inStock} onCheckedChange={(v) => update(i, { inStock: v })} />
+                  </div>
+                  {d.status ? (
+                    <p className="text-sm font-semibold">{d.status.kind}{d.status.reason ? ` — ${d.status.reason}` : ""}</p>
+                  ) : (
+                    <button
+                      disabled={!canSave(d) || busy}
+                      onClick={async () => {
+                        setBusy(true);
+                        await saveOne(i, d);
+                        setBusy(false);
+                        onSaved();
+                      }}
+                      className={`${primaryBtn} w-full`}
+                    >
+                      Save
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
+        </>
+      )}
+    </Sheet>
+  );
+}
