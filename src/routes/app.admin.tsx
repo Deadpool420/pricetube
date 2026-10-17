@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Plus, Search, ShieldAlert, ExternalLink, CheckCircle2, X, Trash2, Wand2 } from "lucide-react";
+import { Loader2, Plus, Search, ShieldAlert, ExternalLink, CheckCircle2, X, Trash2, Wand2, Link as LinkIcon, AlertTriangle } from "lucide-react";
 import {
   checkIsAdmin,
   listAdminData,
@@ -13,6 +13,7 @@ import {
   deleteCatalogSource,
   setSourceVerified,
   generateSearchKey,
+  fetchProductLinks,
 } from "@/lib/admin-catalog.functions";
 import { scrapeProductFromUrl } from "@/lib/price-scraping.functions";
 import { SafeImage } from "@/components/safe-image";
@@ -107,6 +108,7 @@ function AdminPage() {
   const [editListing, setEditListing] = useState<Listing | null>(null);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [adding, setAdding] = useState(false);
+  const [byLink, setByLink] = useState(false);
 
   const reload = async () => {
     setLoading(true);
@@ -254,8 +256,11 @@ function AdminPage() {
       )}
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/90 p-3 backdrop-blur pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto max-w-2xl">
-          <button onClick={() => setAdding(true)} className={`${primaryBtn} flex w-full items-center justify-center gap-2`}>
+        <div className="mx-auto flex max-w-2xl gap-2">
+          <button onClick={() => setByLink(true)} className={`${ghostBtn} flex flex-1 items-center justify-center gap-2`}>
+            <LinkIcon className="h-5 w-5" /> Add by link
+          </button>
+          <button onClick={() => setAdding(true)} className={`${primaryBtn} flex flex-1 items-center justify-center gap-2`}>
             <Plus className="h-5 w-5" /> Add listing
           </button>
         </div>
@@ -271,6 +276,7 @@ function AdminPage() {
         />
       )}
       {adding && <ListingSheet products={products} listings={listings} onClose={() => setAdding(false)} onSaved={reload} />}
+      {byLink && <LinkSheet products={products} listings={listings} onClose={() => setByLink(false)} onSaved={reload} />}
       {editProduct && <ProductSheet p={editProduct} onClose={() => setEditProduct(null)} onSaved={reload} />}
     </main>
   );
