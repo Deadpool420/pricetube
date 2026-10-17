@@ -91,7 +91,7 @@ function SearchPage() {
       const finalQuery = country ? `${term.trim()} ${country}` : term.trim();
       const r = await search({ data: { query: finalQuery, forceRefresh } });
       if (!r.ok) {
-        toast.error(r.error);
+        toast.error("Search failed");
         return;
       }
       setNotInCatalog(r.notInCatalog);

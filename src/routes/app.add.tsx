@@ -70,7 +70,7 @@ function AddProduct() {
     try {
       const r = await search({ data: { query: query.trim() } });
       if (!r.ok) {
-        toast.error(r.error);
+        toast.error("Search failed");
         return;
       }
       if (r.offers.length === 0) {
