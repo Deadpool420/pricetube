@@ -143,7 +143,7 @@ function ProductDetail() {
           return ap - bp;
         });
         setEditResults(sorted);
-      } else toast.error(r.error ?? "Search failed");
+      } else toast.error("Search failed");
     } catch (err: any) {
       toast.error(err?.message ?? "Search failed");
     } finally {

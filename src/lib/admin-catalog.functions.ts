@@ -289,3 +289,33 @@ export const setSourceVerified = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
+
+export const fetchProductLinks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ urls: z.array(z.string().trim().max(2000)).min(1).max(10) }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as Ctx);
+    const { parseProductHtml, isSafePublicUrl } = await import("./link-parser");
+    const UA =
+      "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36";
+    const results = await Promise.all(
+      data.urls.map(async (url) => {
+        const fail = (error: string) => ({ url, ok: false as const, error });
+        if (!isSafePublicUrl(url)) return fail("Only public http/https links are allowed");
+        try {
+          const res = await fetch(url, {
+            headers: { "User-Agent": UA, Accept: "text/html,application/xhtml+xml", "Accept-Language": "en-US,en;q=0.9" },
+            redirect: "manual",
+            signal: AbortSignal.timeout(10000),
+          });
+          if (res.status >= 300 && res.status < 400) return fail("Page redirects elsewhere — paste the final link");
+          if (!res.ok) return fail(`Store returned ${res.status}`);
+          const html = (await res.text()).slice(0, 2_000_000);
+          return parseProductHtml(url, html);
+        } catch (e) {
+          return fail(e instanceof Error && e.name === "TimeoutError" ? "Timed out after 10s" : "Could not open page");
+        }
+      }),
+    );
+    return { results };
+  });
