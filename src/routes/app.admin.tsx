@@ -675,12 +675,7 @@ function ListingSheet({
       </section>
 
       <Field label="Store">
-        <select value={storeSel} onChange={(e) => setStoreSel(e.target.value)} className="h-12 w-full rounded-xl border border-input bg-background px-3 text-base">
-          {STORES.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-          <option value="Other">Other</option>
-        </select>
+        <Picker value={storeSel} onChange={setStoreSel} options={[...STORES, "Other"].map((s) => ({ value: s, label: s }))} />
         {storeSel === "Other" && (
           <Input className="mt-2 h-12 text-base" value={otherStore} onChange={(e) => setOtherStore(e.target.value)} placeholder="Store name" />
         )}
