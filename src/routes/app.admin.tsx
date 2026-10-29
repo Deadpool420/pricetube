@@ -889,6 +889,41 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
   const [fetching, setFetching] = useState(false);
   const [drafts, setDrafts] = useState<LinkDraft[]>([]);
   const [busy, setBusy] = useState(false);
+  const [restored, setRestored] = useState(false);
+
+  // Keep work safe if the phone reloads the tab.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const s = JSON.parse(raw) as { text?: string; drafts?: LinkDraft[] };
+        if (s.text) setText(s.text);
+        if (s.drafts?.length) setDrafts(s.drafts);
+      }
+    } catch {
+      /* ignore */
+    }
+    setRestored(true);
+  }, []);
+  useEffect(() => {
+    if (!restored) return;
+    try {
+      if (!text && drafts.length === 0) localStorage.removeItem(DRAFT_KEY);
+      else localStorage.setItem(DRAFT_KEY, JSON.stringify({ text, drafts }));
+    } catch {
+      /* ignore */
+    }
+  }, [text, drafts, restored]);
+
+  const pasteClip = async () => {
+    try {
+      const clip = await navigator.clipboard.readText();
+      if (!clip.trim()) return toast.error("Clipboard is empty");
+      setText((t) => (t.trim() ? `${t.trim()}\n${clip.trim()}` : clip.trim()));
+    } catch {
+      toast.error("Allow clipboard access, or long-press to paste");
+    }
+  };
 
   const urls = text.split(/\s+/).map((s) => s.trim()).filter(Boolean);
 
@@ -963,6 +998,8 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
         },
       });
       update(i, { status: { kind: dup ? "updated" : "added" }, productId: catalogId });
+      const next = drafts.findIndex((x, j) => j > i && !x.status && !x.error);
+      if (next >= 0) setTimeout(() => document.getElementById(`draft-${next}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
     } catch (e) {
       update(i, { status: { kind: "skipped", reason: e instanceof Error ? e.message : "Could not save" } });
     }
@@ -1006,7 +1043,13 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
     >
       {drafts.length === 0 ? (
         <Field label="Product links (one per line, max 10)">
+          <button type="button" onClick={pasteClip} className={`${ghostBtn} mb-2 flex w-full items-center justify-center gap-2`}>
+            <ClipboardPaste className="h-5 w-5" /> Paste from clipboard
+          </button>
           <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} inputMode="url" placeholder="https://www.startech.com.bd/..." className="min-h-48 text-base" />
+          {text && (
+            <button type="button" onClick={() => setText("")} className="mt-2 text-xs font-medium text-muted-foreground">Clear</button>
+          )}
         </Field>
       ) : (
         <>
@@ -1027,8 +1070,18 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
             </div>
           )}
           {drafts.map((d, i) => (
-            <div key={d.url + i} className="glass space-y-3 rounded-2xl p-3">
+            <div key={d.url + i} id={`draft-${i}`} className={`glass space-y-3 rounded-2xl p-3 ${d.status ? "opacity-60" : ""}`}>
               <p className="break-all text-xs text-muted-foreground">{d.url}</p>
+              {(() => {
+                const ex = listings.find((l) => l.url.trim() === d.url.trim());
+                return ex ? (
+                  <p className="rounded-xl bg-primary/10 p-2 text-xs font-medium text-primary">
+                    Already in catalog at {fmtPrice(ex.price)}
+                    {Number(d.price) > 0 ? ` — saving updates it to ${fmtPrice(Number(d.price))}` : ""}
+                  </p>
+                ) : null;
+              })()}
+              {!d.error && <SpecBadges title={d.title} description={d.description} inStock={d.inStock} />}
               {d.error ? (
                 <p className="flex items-center gap-2 text-sm text-destructive"><AlertTriangle className="h-4 w-4 shrink-0" /> {d.error}</p>
               ) : (
@@ -1039,12 +1092,11 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
                     </p>
                   )}
                   <Field label="Product">
-                    <select value={d.productId} onChange={(e) => update(i, { productId: e.target.value })} className="h-12 w-full rounded-xl border border-input bg-background px-3 text-base">
-                      <option value="">New product</option>
-                      {products.map((p) => (
-                        <option key={p.id} value={p.id}>{p.display_name}</option>
-                      ))}
-                    </select>
+                    <Picker
+                      value={d.productId}
+                      onChange={(v) => update(i, { productId: v })}
+                      options={[{ value: "", label: "New product" }, ...products.map((p) => ({ value: p.id, label: p.display_name }))]}
+                    />
                   </Field>
                   {!d.productId && (
                     <>
