@@ -315,6 +315,7 @@ function SearchPage() {
                           <div className="line-clamp-2 mt-0.5 text-sm font-medium leading-snug break-words">
                             {o.title}
                           </div>
+                          <SpecBadges title={o.title} description={o.description} inStock={(o as { inStock?: boolean }).inStock} />
                           {o.description && (() => {
                             const clean = o.description
                               .replace(/!\[.*?\]\(.*?\)/g, "")

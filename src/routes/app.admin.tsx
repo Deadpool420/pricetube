@@ -375,12 +375,29 @@ function ListingCard({ l, product, onOpen, onChanged }: { l: Listing; product?: 
   );
 }
 
-function ProductCard({ p, count, onOpen, onChanged }: { p: Product; count: number; onOpen: () => void; onChanged: () => void }) {
+function ProductCard({
+  p,
+  sources,
+  onOpen,
+  onOpenListing,
+  onAddListing,
+  onChanged,
+}: {
+  p: Product;
+  sources: Listing[];
+  onOpen: () => void;
+  onOpenListing: (l: Listing) => void;
+  onAddListing: () => void;
+  onChanged: () => void;
+}) {
   const verifyFn = useServerFn(setCatalogVerification);
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
   const verified = p.verification_status === "verified";
-  const approve = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const priced = sources.filter((s) => s.price && s.price > 0 && s.in_stock);
+  const low = priced.length ? Math.min(...priced.map((s) => s.price as number)) : null;
+  const missing = sources.filter((s) => !s.price || s.price <= 0).length;
+  const approve = async () => {
     setBusy(true);
     try {
       await verifyFn({ data: { id: p.id, status: verified ? "pending_review" : "verified" } });
@@ -393,23 +410,119 @@ function ProductCard({ p, count, onOpen, onChanged }: { p: Product; count: numbe
     }
   };
   return (
-    <div role="button" tabIndex={0} onClick={onOpen} className="glass min-w-0 rounded-2xl p-3">
-      <div className="flex min-w-0 gap-3">
+    <div className="glass min-w-0 rounded-2xl p-3">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full min-w-0 gap-3 text-left">
         <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white/50 p-1">
           <SafeImage src={p.image_url} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="line-clamp-2 break-words font-medium">{p.display_name}</div>
+          <div className="flex items-start justify-between gap-2">
+            <span className="line-clamp-2 break-words font-medium">{p.display_name}</span>
+            <ChevronDown className={`mt-0.5 h-5 w-5 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+          </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <span className={`${pill} bg-muted text-foreground`}>{p.category}</span>
             <StatusPill verified={verified} label={p.verification_status.replace("_", " ")} />
-            <span className="text-[11px] text-muted-foreground">{count} listings</span>
+            <span className="text-[11px] text-muted-foreground">
+              {sources.length} {sources.length === 1 ? "store" : "stores"}
+              {low ? ` · from ${fmtPrice(low)}` : ""}
+            </span>
+            {missing > 0 && <span className={`${pill} bg-destructive/10 text-destructive`}>{missing} no price</span>}
           </div>
         </div>
-      </div>
-      <button disabled={busy} onClick={approve} className={`${verified ? ghostBtn : primaryBtn} mt-3 flex w-full items-center justify-center gap-1.5`}>
-        <CheckCircle2 className="h-4 w-4" /> {verified ? "Unverify" : "Approve"}
       </button>
+
+      {open && (
+        <div className="mt-3 space-y-2">
+          {sources.length === 0 && <p className="text-xs text-muted-foreground">No store prices yet.</p>}
+          {sources.map((l) => (
+            <SourceRow key={l.id} l={l} product={p} onOpen={() => onOpenListing(l)} onChanged={onChanged} />
+          ))}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button onClick={onAddListing} className={`${ghostBtn} flex items-center justify-center gap-1.5`}>
+              <Plus className="h-4 w-4" /> Add store
+            </button>
+            <button onClick={onOpen} className={`${ghostBtn} flex items-center justify-center gap-1.5`}>
+              <Pencil className="h-4 w-4" /> Edit product
+            </button>
+          </div>
+          <button disabled={busy} onClick={approve} className={`${verified ? ghostBtn : primaryBtn} flex w-full items-center justify-center gap-1.5`}>
+            <CheckCircle2 className="h-4 w-4" /> {verified ? "Unverify product" : "Approve product"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SourceRow({ l, product, onOpen, onChanged }: { l: Listing; product: Product; onOpen: () => void; onChanged: () => void }) {
+  const verifyFn = useServerFn(setSourceVerified);
+  const [busy, setBusy] = useState(false);
+  const verified = isListingVerified(l, product);
+  const toggle = async () => {
+    setBusy(true);
+    try {
+      await verifyFn({ data: { id: l.id, verified: !verified } });
+      onChanged();
+    } catch {
+      toast.error("Could not update");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="rounded-xl bg-background/60 p-2.5">
+      <button type="button" onClick={onOpen} className="block w-full min-w-0 text-left">
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate text-sm font-semibold text-primary">{l.site_name}</span>
+          <span className="shrink-0 font-display text-sm font-bold">{fmtPrice(l.price)}</span>
+        </div>
+        <div className="truncate text-xs text-muted-foreground">{l.title || "Untitled"}</div>
+        <SpecBadges title={l.title} description={l.description} inStock={l.in_stock} />
+      </button>
+      <div className="mt-2 flex items-center gap-2">
+        <a href={l.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 flex-1 items-center justify-center gap-1 rounded-xl border border-border text-xs font-medium">
+          <ExternalLink className="h-3.5 w-3.5" /> Open
+        </a>
+        <button disabled={busy} onClick={toggle} className={`inline-flex min-h-10 flex-1 items-center justify-center gap-1 rounded-xl text-xs font-semibold ${verified ? "border border-border" : "bg-primary text-primary-foreground"}`}>
+          <CheckCircle2 className="h-3.5 w-3.5" /> {verified ? "Verified" : "Verify"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Picker({ value, options, onChange }: { value: string; options: { value: string; label: string }[]; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const current = options.find((o) => o.value === value)?.label ?? "Choose";
+  const shown = options.filter((o) => o.label.toLowerCase().includes(q.trim().toLowerCase()));
+  return (
+    <div>
+      <button type="button" onClick={() => setOpen((v) => !v)} className="flex h-12 w-full items-center justify-between rounded-xl border border-input bg-background px-3 text-left text-base">
+        <span className="truncate">{current}</span>
+        <ChevronDown className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="mt-2 rounded-xl border border-border bg-card p-1">
+          {options.length > 8 && <Input className="mb-1 h-11 text-base" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" />}
+          <div className="max-h-64 overflow-y-auto">
+            {shown.map((o) => (
+              <button
+                key={o.value || "_none"}
+                type="button"
+                onClick={() => {
+                  onChange(o.value);
+                  setOpen(false);
+                  setQ("");
+                }}
+                className={`flex min-h-11 w-full items-center rounded-lg px-3 text-left text-sm ${o.value === value ? "bg-primary/10 font-semibold text-primary" : ""}`}
+              >
+                <span className="truncate">{o.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -675,12 +788,7 @@ function ListingSheet({
       </section>
 
       <Field label="Store">
-        <select value={storeSel} onChange={(e) => setStoreSel(e.target.value)} className="h-12 w-full rounded-xl border border-input bg-background px-3 text-base">
-          {STORES.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-          <option value="Other">Other</option>
-        </select>
+        <Picker value={storeSel} onChange={setStoreSel} options={[...STORES, "Other"].map((s) => ({ value: s, label: s }))} />
         {storeSel === "Other" && (
           <Input className="mt-2 h-12 text-base" value={otherStore} onChange={(e) => setOtherStore(e.target.value)} placeholder="Store name" />
         )}
@@ -889,6 +997,41 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
   const [fetching, setFetching] = useState(false);
   const [drafts, setDrafts] = useState<LinkDraft[]>([]);
   const [busy, setBusy] = useState(false);
+  const [restored, setRestored] = useState(false);
+
+  // Keep work safe if the phone reloads the tab.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const s = JSON.parse(raw) as { text?: string; drafts?: LinkDraft[] };
+        if (s.text) setText(s.text);
+        if (s.drafts?.length) setDrafts(s.drafts);
+      }
+    } catch {
+      /* ignore */
+    }
+    setRestored(true);
+  }, []);
+  useEffect(() => {
+    if (!restored) return;
+    try {
+      if (!text && drafts.length === 0) localStorage.removeItem(DRAFT_KEY);
+      else localStorage.setItem(DRAFT_KEY, JSON.stringify({ text, drafts }));
+    } catch {
+      /* ignore */
+    }
+  }, [text, drafts, restored]);
+
+  const pasteClip = async () => {
+    try {
+      const clip = await navigator.clipboard.readText();
+      if (!clip.trim()) return toast.error("Clipboard is empty");
+      setText((t) => (t.trim() ? `${t.trim()}\n${clip.trim()}` : clip.trim()));
+    } catch {
+      toast.error("Allow clipboard access, or long-press to paste");
+    }
+  };
 
   const urls = text.split(/\s+/).map((s) => s.trim()).filter(Boolean);
 
@@ -963,6 +1106,8 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
         },
       });
       update(i, { status: { kind: dup ? "updated" : "added" }, productId: catalogId });
+      const next = drafts.findIndex((x, j) => j > i && !x.status && !x.error);
+      if (next >= 0) setTimeout(() => document.getElementById(`draft-${next}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
     } catch (e) {
       update(i, { status: { kind: "skipped", reason: e instanceof Error ? e.message : "Could not save" } });
     }
@@ -1006,7 +1151,13 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
     >
       {drafts.length === 0 ? (
         <Field label="Product links (one per line, max 10)">
+          <button type="button" onClick={pasteClip} className={`${ghostBtn} mb-2 flex w-full items-center justify-center gap-2`}>
+            <ClipboardPaste className="h-5 w-5" /> Paste from clipboard
+          </button>
           <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} inputMode="url" placeholder="https://www.startech.com.bd/..." className="min-h-48 text-base" />
+          {text && (
+            <button type="button" onClick={() => setText("")} className="mt-2 text-xs font-medium text-muted-foreground">Clear</button>
+          )}
         </Field>
       ) : (
         <>
@@ -1027,8 +1178,18 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
             </div>
           )}
           {drafts.map((d, i) => (
-            <div key={d.url + i} className="glass space-y-3 rounded-2xl p-3">
+            <div key={d.url + i} id={`draft-${i}`} className={`glass space-y-3 rounded-2xl p-3 ${d.status ? "opacity-60" : ""}`}>
               <p className="break-all text-xs text-muted-foreground">{d.url}</p>
+              {(() => {
+                const ex = listings.find((l) => l.url.trim() === d.url.trim());
+                return ex ? (
+                  <p className="rounded-xl bg-primary/10 p-2 text-xs font-medium text-primary">
+                    Already in catalog at {fmtPrice(ex.price)}
+                    {Number(d.price) > 0 ? ` — saving updates it to ${fmtPrice(Number(d.price))}` : ""}
+                  </p>
+                ) : null;
+              })()}
+              {!d.error && <SpecBadges title={d.title} description={d.description} inStock={d.inStock} />}
               {d.error ? (
                 <p className="flex items-center gap-2 text-sm text-destructive"><AlertTriangle className="h-4 w-4 shrink-0" /> {d.error}</p>
               ) : (
@@ -1039,12 +1200,11 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
                     </p>
                   )}
                   <Field label="Product">
-                    <select value={d.productId} onChange={(e) => update(i, { productId: e.target.value })} className="h-12 w-full rounded-xl border border-input bg-background px-3 text-base">
-                      <option value="">New product</option>
-                      {products.map((p) => (
-                        <option key={p.id} value={p.id}>{p.display_name}</option>
-                      ))}
-                    </select>
+                    <Picker
+                      value={d.productId}
+                      onChange={(v) => update(i, { productId: v })}
+                      options={[{ value: "", label: "New product" }, ...products.map((p) => ({ value: p.id, label: p.display_name }))]}
+                    />
                   </Field>
                   {!d.productId && (
                     <>
