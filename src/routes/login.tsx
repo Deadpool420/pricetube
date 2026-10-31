@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Droplets, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/use-auth";
@@ -17,9 +18,9 @@ export const Route = createFileRoute("/login")({
       { name: "description", content: "Sign in or create a free Price Tag account to start tracking product prices." },
       { property: "og:title", content: "Sign in — Price Tag" },
       { property: "og:description", content: "Sign in or create a free Price Tag account to start tracking product prices." },
-      { property: "og:url", content: "https://pricetube.lovable.app/login" },
+      { property: "og:url", content: "https://pricetagbd.lovable.app/login" },
     ],
-    links: [{ rel: "canonical", href: "https://pricetube.lovable.app/login" }],
+    links: [{ rel: "canonical", href: "https://pricetagbd.lovable.app/login" }],
   }),
 });
 
@@ -94,14 +95,14 @@ function LoginPage() {
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <div className="glass-strong w-full max-w-md rounded-3xl p-8">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--primary)] text-primary-foreground shadow-md">
-            <Droplets className="h-5 w-5" />
+          <div className="mx-auto mb-3 flex justify-center">
+            <BrandLogo size={52} />
           </div>
           <h1 className="font-display text-2xl font-bold tracking-tight">
             {mode === "signin" ? "Welcome back" : "Create your account"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "signin" ? "Sign in to track prices" : "Start tracking prices in seconds"}
+            {mode === "signin" ? "Sign in to save products and watch prices" : "Free. Save products and get price-drop alerts."}
           </p>
         </div>
 
@@ -109,7 +110,7 @@ function LoginPage() {
           type="button"
           onClick={handleGoogle}
           disabled={submitting}
-          className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl glass-inset px-4 py-3 text-sm font-medium hover:bg-white/80 transition disabled:opacity-60"
+          className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl glass-inset min-h-12 px-4 py-3 text-sm font-semibold hover:bg-white/80 transition disabled:opacity-60"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -139,11 +140,16 @@ function LoginPage() {
             required
             minLength={6}
             aria-label="Password"
-            placeholder="Password"
+            placeholder={mode === "signup" ? "Create a Price Tag password" : "Price Tag password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-2xl glass-inset px-4 py-3 text-sm outline-none placeholder:text-muted-foreground/70 focus:ring-2 focus:ring-[var(--ring)]"
           />
+          {mode === "signup" && (
+            <p className="px-1 text-xs text-muted-foreground">
+              Make a new password just for Price Tag (6+ characters). Don't use your email password.
+            </p>
+          )}
           <button
             type="submit"
             disabled={submitting}
