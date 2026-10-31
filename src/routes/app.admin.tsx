@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Plus, Search, ShieldAlert, ExternalLink, CheckCircle2, X, Trash2, Wand2, Link as LinkIcon, AlertTriangle } from "lucide-react";
+import { Loader2, Plus, Search, ShieldAlert, ExternalLink, CheckCircle2, X, Trash2, Wand2, Link as LinkIcon, AlertTriangle, ChevronDown, Pencil, ClipboardPaste } from "lucide-react";
 import {
   checkIsAdmin,
   listAdminData,
@@ -17,6 +17,7 @@ import {
 } from "@/lib/admin-catalog.functions";
 import { scrapeProductFromUrl } from "@/lib/price-scraping.functions";
 import { SafeImage } from "@/components/safe-image";
+import { SpecBadges } from "@/components/spec-badges";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -86,6 +87,7 @@ function withOfficial(desc: string, official: boolean): string {
 }
 const isListingVerified = (l: Listing, p?: Product) => l.verified ?? p?.verification_status === "verified";
 
+const DRAFT_KEY = "pricetag:link-drafts";
 const pill = "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium";
 const bigBtn = "min-h-12 rounded-2xl px-4 text-sm font-semibold disabled:opacity-60";
 const primaryBtn = `${bigBtn} bg-primary text-primary-foreground`;
@@ -99,10 +101,9 @@ function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [listings, setListings] = useState<Listing[]>([]);
-  const [tab, setTab] = useState<"listings" | "products">("listings");
+  const [addFor, setAddFor] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [vFilter, setVFilter] = useState<"all" | "verified" | "unverified">("all");
-  const [store, setStore] = useState("");
   const [missingImage, setMissingImage] = useState(false);
   const [missingPrice, setMissingPrice] = useState(false);
   const [editListing, setEditListing] = useState<Listing | null>(null);
@@ -133,31 +134,25 @@ function AdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const byId = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
-  const counts = useMemo(() => {
-    const c: Record<string, number> = {};
-    for (const l of listings) c[l.catalog_id] = (c[l.catalog_id] ?? 0) + 1;
-    return c;
+  const sourcesBy = useMemo(() => {
+    const m = new Map<string, Listing[]>();
+    for (const l of listings) {
+      const arr = m.get(l.catalog_id) ?? [];
+      arr.push(l);
+      m.set(l.catalog_id, arr);
+    }
+    for (const arr of m.values()) arr.sort((a, b) => (a.price || Infinity) - (b.price || Infinity));
+    return m;
   }, [listings]);
-  const storeNames = useMemo(() => Array.from(new Set(listings.map((l) => l.site_name))).sort(), [listings]);
 
   const needle = q.trim().toLowerCase();
-  const filteredListings = listings.filter((l) => {
-    const p = byId.get(l.catalog_id);
-    if (needle && !`${l.title ?? ""} ${l.site_name} ${p?.display_name ?? ""} ${l.url}`.toLowerCase().includes(needle)) return false;
-    const v = isListingVerified(l, p);
-    if (vFilter === "verified" && !v) return false;
-    if (vFilter === "unverified" && v) return false;
-    if (store && l.site_name !== store) return false;
-    if (missingImage && l.image_url) return false;
-    if (missingPrice && l.price && l.price > 0) return false;
-    return true;
-  });
   const filteredProducts = products.filter((p) => {
-    if (needle && !`${p.display_name} ${p.search_key}`.toLowerCase().includes(needle)) return false;
+    const src = sourcesBy.get(p.id) ?? [];
+    if (needle && !`${p.display_name} ${p.search_key} ${src.map((s) => s.site_name).join(" ")}`.toLowerCase().includes(needle)) return false;
     if (vFilter === "verified" && p.verification_status !== "verified") return false;
-    if (vFilter === "unverified" && p.verification_status === "verified") return false;
+    if (vFilter === "unverified" && p.verification_status === "verified" && src.every((s) => isListingVerified(s, p))) return false;
     if (missingImage && p.image_url) return false;
+    if (missingPrice && src.length > 0 && src.every((s) => s.price && s.price > 0)) return false;
     return true;
   });
 
@@ -179,53 +174,23 @@ function AdminPage() {
     <main className="page-enter mx-auto w-full max-w-2xl overflow-x-hidden px-4 pb-32 pt-6">
       <h1 className="font-display text-2xl font-bold tracking-tight">Catalog admin</h1>
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        {(["listings", "products"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`${bigBtn} ${tab === t ? "bg-primary text-primary-foreground" : "glass"}`}
-          >
-            {t === "listings" ? `Store listings (${listings.length})` : `Products (${products.length})`}
-          </button>
-        ))}
-      </div>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {products.length} products · {listings.length} store prices
+      </p>
 
       <div className="mt-4 space-y-2">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="h-12 pl-9 text-base" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search products…" className="h-12 pl-9 text-base" />
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <select
-            value={vFilter}
-            onChange={(e) => setVFilter(e.target.value as typeof vFilter)}
-            className="h-12 min-w-0 rounded-xl border border-input bg-background px-3 text-sm"
-            aria-label="Verification filter"
-          >
-            <option value="all">All statuses</option>
-            <option value="verified">Verified</option>
-            <option value="unverified">Unverified</option>
-          </select>
-          {tab === "listings" ? (
-            <select
-              value={store}
-              onChange={(e) => setStore(e.target.value)}
-              className="h-12 min-w-0 rounded-xl border border-input bg-background px-3 text-sm"
-              aria-label="Store filter"
-            >
-              <option value="">All stores</option>
-              {storeNames.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          ) : (
-            <div />
-          )}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Chip on={missingImage} onClick={() => setMissingImage((v) => !v)}>Missing image</Chip>
-          {tab === "listings" && <Chip on={missingPrice} onClick={() => setMissingPrice((v) => !v)}>Missing price</Chip>}
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+          {(["all", "verified", "unverified"] as const).map((v) => (
+            <Chip key={v} on={vFilter === v} onClick={() => setVFilter(v)}>
+              {v === "all" ? "All" : v === "verified" ? "Verified" : "Needs review"}
+            </Chip>
+          ))}
+          <Chip on={missingImage} onClick={() => setMissingImage((v) => !v)}>No image</Chip>
+          <Chip on={missingPrice} onClick={() => setMissingPrice((v) => !v)}>Missing price</Chip>
         </div>
       </div>
 
@@ -233,24 +198,19 @@ function AdminPage() {
         <div className="grid place-items-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : tab === "listings" ? (
-        <div className="mt-4 space-y-3">
-          <p className="text-xs text-muted-foreground">{filteredListings.length} listings</p>
-          {filteredListings.map((l) => (
-            <ListingCard
-              key={l.id}
-              l={l}
-              product={byId.get(l.catalog_id)}
-              onOpen={() => setEditListing(l)}
-              onChanged={reload}
-            />
-          ))}
-        </div>
       ) : (
         <div className="mt-4 space-y-3">
           <p className="text-xs text-muted-foreground">{filteredProducts.length} products</p>
           {filteredProducts.map((p) => (
-            <ProductCard key={p.id} p={p} count={counts[p.id] ?? 0} onOpen={() => setEditProduct(p)} onChanged={reload} />
+            <ProductCard
+              key={p.id}
+              p={p}
+              sources={sourcesBy.get(p.id) ?? []}
+              onOpen={() => setEditProduct(p)}
+              onOpenListing={setEditListing}
+              onAddListing={() => setAddFor(p.id)}
+              onChanged={reload}
+            />
           ))}
         </div>
       )}
@@ -275,7 +235,9 @@ function AdminPage() {
           onSaved={reload}
         />
       )}
-      {adding && <ListingSheet products={products} listings={listings} onClose={() => setAdding(false)} onSaved={reload} />}
+      {(adding || addFor) && (
+        <ListingSheet products={products} listings={listings} presetProductId={addFor ?? undefined} onClose={() => { setAdding(false); setAddFor(null); }} onSaved={reload} />
+      )}
       {byLink && <LinkSheet products={products} listings={listings} onClose={() => setByLink(false)} onSaved={reload} />}
       {editProduct && <ProductSheet p={editProduct} onClose={() => setEditProduct(null)} onSaved={reload} />}
     </main>
@@ -298,80 +260,6 @@ function StatusPill({ verified, label }: { verified: boolean; label?: string }) 
     <span className={`${pill} ${verified ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
       {label ?? (verified ? "Verified" : "Unverified")}
     </span>
-  );
-}
-
-function ListingCard({ l, product, onOpen, onChanged }: { l: Listing; product?: Product; onOpen: () => void; onChanged: () => void }) {
-  const verifyFn = useServerFn(setSourceVerified);
-  const [expanded, setExpanded] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const verified = isListingVerified(l, product);
-  const official = officialOf(l.description);
-
-  const toggleVerify = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setBusy(true);
-    try {
-      await verifyFn({ data: { id: l.id, verified: !verified } });
-      toast.success(verified ? "Unverified" : "Verified");
-      onChanged();
-    } catch {
-      toast.error("Could not update");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div role="button" tabIndex={0} onClick={onOpen} className="glass min-w-0 rounded-2xl p-3 text-left">
-      <div className="flex min-w-0 gap-3">
-        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white/50 p-1">
-          <SafeImage src={l.image_url} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <span className="truncate text-xs font-semibold text-primary">{l.site_name}</span>
-            <span className="shrink-0 font-display text-base font-bold">{fmtPrice(l.price)}</span>
-          </div>
-          <div className="line-clamp-2 break-words text-sm font-medium leading-snug">{l.title || "Untitled"}</div>
-          {product && <div className="truncate text-xs text-muted-foreground">{product.display_name}</div>}
-        </div>
-      </div>
-      {l.description && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setExpanded((v) => !v);
-          }}
-          className={`mt-2 block w-full break-words text-left text-xs text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}
-        >
-          {l.description}
-        </button>
-      )}
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className={`${pill} ${l.in_stock ? "bg-primary/10 text-primary" : "bg-destructive/15 text-destructive"}`}>
-          {l.in_stock ? "In stock" : "Out of stock"}
-        </span>
-        {official && <span className={`${pill} bg-muted text-foreground`}>{official}</span>}
-        <StatusPill verified={verified} />
-        <span className="text-[11px] text-muted-foreground">Checked {fmtDate(l.last_checked_at)}</span>
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <a
-          href={l.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className={`${ghostBtn} flex items-center justify-center gap-1.5`}
-        >
-          <ExternalLink className="h-4 w-4" /> Open link
-        </a>
-        <button disabled={busy} onClick={toggleVerify} className={`${verified ? ghostBtn : primaryBtn} flex items-center justify-center gap-1.5`}>
-          <CheckCircle2 className="h-4 w-4" /> {verified ? "Unverify" : "Verify"}
-        </button>
-      </div>
-    </div>
   );
 }
 
@@ -593,12 +481,14 @@ function ListingSheet({
   products,
   listings,
   initial,
+  presetProductId,
   onClose,
   onSaved,
 }: {
   products: Product[];
   listings: Listing[];
   initial?: Listing;
+  presetProductId?: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -608,7 +498,7 @@ function ListingSheet({
   const scrapeFn = useServerFn(scrapeProductFromUrl);
 
   const initialStore = initial?.site_name ?? STORES[0];
-  const [productId, setProductId] = useState(initial?.catalog_id ?? "");
+  const [productId, setProductId] = useState(initial?.catalog_id ?? presetProductId ?? "");
   const [productQ, setProductQ] = useState("");
   const [newProduct, setNewProduct] = useState(false);
   const [np, setNp] = useState({ name: "", image: "", category: "SMARTPHONES" });

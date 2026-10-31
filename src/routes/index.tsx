@@ -8,35 +8,35 @@ export const Route = createFileRoute("/")({
   component: Landing,
   head: () => ({
     meta: [
-      { title: "Price Tag — Track product prices across every store" },
+      { title: "Price Tag — Compare phone & gadget prices in Bangladesh" },
       {
         name: "description",
         content:
-          "Search any product by name. Price Tag finds every retailer selling it, compares prices, and quietly tracks the history for you.",
+          "Instantly compare verified prices in ৳ from Star Tech, Ryans, Apple Gadgets, Gadget & Gear, MobileDokan and more — with official/unofficial and RAM/storage variants side by side.",
       },
-      { property: "og:title", content: "Price Tag — Track product prices across every store" },
+      { property: "og:title", content: "Price Tag — Compare phone & gadget prices in Bangladesh" },
       {
         property: "og:description",
         content:
-          "Search any product by name. Price Tag finds every retailer, compares prices, and tracks the history.",
+          "Verified tech prices from Bangladesh stores in one place, in ৳, with variants and price history.",
       },
-      { property: "og:url", content: "https://pricetube.lovable.app/" },
+      { property: "og:url", content: "https://pricetagbd.lovable.app/" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Price Tag — Track product prices across every store" },
+      { name: "twitter:title", content: "Price Tag — Compare phone & gadget prices in Bangladesh" },
       {
         name: "twitter:description",
         content:
-          "Search any product by name. Price Tag finds every retailer, compares prices, and tracks the history.",
+          "Verified tech prices from Bangladesh stores in one place, in ৳, with variants and price history.",
       },
     ],
-    links: [{ rel: "canonical", href: "https://pricetube.lovable.app/" }],
+    links: [{ rel: "canonical", href: "https://pricetagbd.lovable.app/" }],
   }),
 });
 
 const EXAMPLES = [
-  { name: "iPhone 15 Pro 256GB", sources: 5, price: "$1,049", drop: "$50" },
-  { name: "Sony WH-1000XM5", sources: 4, price: "$329", drop: "$70" },
-  { name: "Nike Air Max 90", sources: 6, price: "$108", drop: "$22" },
+  { name: "Samsung Galaxy A56", tag: "Official · 8/256 GB" },
+  { name: "CMF Phone 2 Pro", tag: "Official · 8/256 GB" },
+  { name: "Redmi Turbo 4 Pro", tag: "Unofficial · 12/256 GB" },
 ];
 
 function Landing() {
@@ -78,13 +78,13 @@ function Landing() {
         <section className="pt-20 pb-16 md:pt-28 md:pb-20">
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="font-display text-5xl font-bold tracking-tight md:text-6xl">
-              <span className="text-foreground/80">Type the product.</span>
+              <span className="text-foreground/80">One search.</span>
               <br />
-              <span className="text-gradient">We find every price.</span>
+              <span className="text-gradient">Every Bangladesh store price.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-base text-muted-foreground md:text-lg">
-              Search like Google. Price Tag discovers every store selling it, lines up the prices
-              side by side, and quietly watches them drop.
+              Phones and gadgets from Star Tech, Ryans, Apple Gadgets, Gadget & Gear, MobileDokan and
+              more — checked by hand, shown instantly in ৳, with official and unofficial variants kept apart.
             </p>
             <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
               <Link
@@ -106,7 +106,7 @@ function Landing() {
                 <input
                   type="text"
                   aria-label="Search any product"
-                  placeholder="Search any product…"
+                  placeholder="e.g. Galaxy A56, CMF Phone 2 Pro…"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
@@ -119,7 +119,7 @@ function Landing() {
                 </button>
               </div>
               <div className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                Price Tag looks across Amazon, Best Buy, eBay, Walmart, Target and more
+                Verified listings from trusted Bangladesh retailers
               </div>
             </div>
           </form>
@@ -127,27 +127,21 @@ function Landing() {
           {/* Example results preview */}
           <div className="mx-auto mt-10 max-w-2xl">
             <div className="mb-3 text-center text-[11px] uppercase tracking-wide text-muted-foreground">
-              Sneak peek — this is what your tracker looks like
+              Try one of these
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               {EXAMPLES.map((ex) => (
-                <div key={ex.name} className="glass rounded-2xl p-4 text-left">
+                <Link key={ex.name} to="/search" search={{ q: ex.name }} className="glass rounded-2xl p-4 text-left">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--primary)] text-primary-foreground shadow-sm">
                     <TrendingDown className="h-4 w-4" />
                   </div>
-                  <h3 className="mt-3 line-clamp-2 font-display text-sm font-semibold leading-tight">
-                    {ex.name}
-                  </h3>
-                  <div className="mt-1 text-[11px] text-muted-foreground">{ex.sources} sources</div>
-                  <div className="mt-2 font-display text-lg font-bold text-gradient">{ex.price}</div>
-                  <div className="mt-1 text-[10px] uppercase tracking-wide text-[oklch(0.4_0.13_160)]">
-                    ↓ {ex.drop} this week
+                  <h3 className="mt-3 line-clamp-2 font-display text-sm font-semibold leading-tight">{ex.name}</h3>
+                  <div className="mt-1 text-[11px] text-muted-foreground">{ex.tag}</div>
+                  <div className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary">
+                    Compare prices <ArrowRight className="h-3 w-3" />
                   </div>
-                </div>
+                </Link>
               ))}
-            </div>
-            <div className="mt-2 text-center text-[10px] text-muted-foreground">
-              Example data — sign in to track your own products
             </div>
           </div>
         </section>
@@ -162,21 +156,21 @@ function Landing() {
               icon: Search,
               title: "Search by name",
               body:
-                "Type any product. Price Tag scans the major retailers and shows the offers in one list.",
+                "Type a phone or gadget. Results come instantly from our hand-checked catalog of Bangladesh stores.",
             },
             {
               n: "02",
               icon: Check,
-              title: "Pick what to track",
+              title: "Compare like for like",
               body:
-                "Tick the stores you actually care about. We save them as one product with multiple sources.",
+                "Official vs unofficial and RAM/storage are labelled, so you never compare the wrong variant.",
             },
             {
               n: "03",
               icon: LineChart,
-              title: "Watch the history",
+              title: "Save and get alerts",
               body:
-                "Every refresh adds a point. See which store keeps dropping and which one is gouging.",
+                "Save a product to see its price history and get an email when it drops.",
             },
           ].map((s) => (
             <div key={s.n} className="glass glass-hover rounded-3xl p-6">
@@ -200,14 +194,14 @@ function Landing() {
             <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
               <div>
                 <div className="glass-inset inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium text-[var(--deep)]">
-                  <Bell className="h-3.5 w-3.5" /> Built for one thing
+                  <Bell className="h-3.5 w-3.5" /> Made for Bangladesh
                 </div>
                 <h2 className="mt-4 font-display text-3xl font-bold tracking-tight">
-                  No tabs. No screenshots. No "wait, was it cheaper last week?"
+                  Stop opening ten store tabs.
                 </h2>
                 <p className="mt-3 max-w-xl text-sm text-muted-foreground md:text-base">
-                  Price Tag is a single page where every product you care about sits with its current
-                  prices and its history. Search, save, hit refresh, decide. That's it.
+                  Every price on Price Tag comes from a real store page and is checked before it shows up.
+                  No guesses, no fake deals — just the lowest in-stock price in ৳.
                 </p>
               </div>
               <Link
