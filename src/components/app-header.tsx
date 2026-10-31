@@ -66,17 +66,7 @@ export function AppHeader() {
           to="/"
           className="flex min-w-0 items-center gap-2 justify-self-start font-display text-sm font-semibold tracking-tight sm:text-base"
         >
-          <span
-            className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden shadow-md"
-            style={{ borderRadius: "10px" }}
-          >
-            <img
-              src="/icon-192.png"
-              alt="Price Tag"
-              className="h-full w-full object-cover"
-              style={{ borderRadius: "10px" }}
-            />
-          </span>
+          <BrandLogo size={32} />
           <span className="text-gradient whitespace-nowrap hidden min-[360px]:inline">Price Tag</span>
         </Link>
 
