@@ -481,12 +481,14 @@ function ListingSheet({
   products,
   listings,
   initial,
+  presetProductId,
   onClose,
   onSaved,
 }: {
   products: Product[];
   listings: Listing[];
   initial?: Listing;
+  presetProductId?: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
