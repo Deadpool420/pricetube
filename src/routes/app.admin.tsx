@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Plus, Search, ShieldAlert, ExternalLink, CheckCircle2, X, Trash2, Wand2, Link as LinkIcon, AlertTriangle } from "lucide-react";
+import { Loader2, Plus, Search, ShieldAlert, ExternalLink, CheckCircle2, X, Trash2, Wand2, Link as LinkIcon, AlertTriangle, ChevronDown, Pencil, ClipboardPaste } from "lucide-react";
 import {
   checkIsAdmin,
   listAdminData,
@@ -17,6 +17,7 @@ import {
 } from "@/lib/admin-catalog.functions";
 import { scrapeProductFromUrl } from "@/lib/price-scraping.functions";
 import { SafeImage } from "@/components/safe-image";
+import { SpecBadges } from "@/components/spec-badges";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -86,6 +87,7 @@ function withOfficial(desc: string, official: boolean): string {
 }
 const isListingVerified = (l: Listing, p?: Product) => l.verified ?? p?.verification_status === "verified";
 
+const DRAFT_KEY = "pricetag:link-drafts";
 const pill = "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium";
 const bigBtn = "min-h-12 rounded-2xl px-4 text-sm font-semibold disabled:opacity-60";
 const primaryBtn = `${bigBtn} bg-primary text-primary-foreground`;
@@ -233,7 +235,9 @@ function AdminPage() {
           onSaved={reload}
         />
       )}
-      {adding && <ListingSheet products={products} listings={listings} onClose={() => setAdding(false)} onSaved={reload} />}
+      {(adding || addFor) && (
+        <ListingSheet products={products} listings={listings} presetProductId={addFor ?? undefined} onClose={() => { setAdding(false); setAddFor(null); }} onSaved={reload} />
+      )}
       {byLink && <LinkSheet products={products} listings={listings} onClose={() => setByLink(false)} onSaved={reload} />}
       {editProduct && <ProductSheet p={editProduct} onClose={() => setEditProduct(null)} onSaved={reload} />}
     </main>
@@ -256,80 +260,6 @@ function StatusPill({ verified, label }: { verified: boolean; label?: string }) 
     <span className={`${pill} ${verified ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
       {label ?? (verified ? "Verified" : "Unverified")}
     </span>
-  );
-}
-
-function ListingCard({ l, product, onOpen, onChanged }: { l: Listing; product?: Product; onOpen: () => void; onChanged: () => void }) {
-  const verifyFn = useServerFn(setSourceVerified);
-  const [expanded, setExpanded] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const verified = isListingVerified(l, product);
-  const official = officialOf(l.description);
-
-  const toggleVerify = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setBusy(true);
-    try {
-      await verifyFn({ data: { id: l.id, verified: !verified } });
-      toast.success(verified ? "Unverified" : "Verified");
-      onChanged();
-    } catch {
-      toast.error("Could not update");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div role="button" tabIndex={0} onClick={onOpen} className="glass min-w-0 rounded-2xl p-3 text-left">
-      <div className="flex min-w-0 gap-3">
-        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white/50 p-1">
-          <SafeImage src={l.image_url} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <span className="truncate text-xs font-semibold text-primary">{l.site_name}</span>
-            <span className="shrink-0 font-display text-base font-bold">{fmtPrice(l.price)}</span>
-          </div>
-          <div className="line-clamp-2 break-words text-sm font-medium leading-snug">{l.title || "Untitled"}</div>
-          {product && <div className="truncate text-xs text-muted-foreground">{product.display_name}</div>}
-        </div>
-      </div>
-      {l.description && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setExpanded((v) => !v);
-          }}
-          className={`mt-2 block w-full break-words text-left text-xs text-muted-foreground ${expanded ? "" : "line-clamp-2"}`}
-        >
-          {l.description}
-        </button>
-      )}
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className={`${pill} ${l.in_stock ? "bg-primary/10 text-primary" : "bg-destructive/15 text-destructive"}`}>
-          {l.in_stock ? "In stock" : "Out of stock"}
-        </span>
-        {official && <span className={`${pill} bg-muted text-foreground`}>{official}</span>}
-        <StatusPill verified={verified} />
-        <span className="text-[11px] text-muted-foreground">Checked {fmtDate(l.last_checked_at)}</span>
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <a
-          href={l.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className={`${ghostBtn} flex items-center justify-center gap-1.5`}
-        >
-          <ExternalLink className="h-4 w-4" /> Open link
-        </a>
-        <button disabled={busy} onClick={toggleVerify} className={`${verified ? ghostBtn : primaryBtn} flex items-center justify-center gap-1.5`}>
-          <CheckCircle2 className="h-4 w-4" /> {verified ? "Unverify" : "Verify"}
-        </button>
-      </div>
-    </div>
   );
 }
 
@@ -566,7 +496,7 @@ function ListingSheet({
   const scrapeFn = useServerFn(scrapeProductFromUrl);
 
   const initialStore = initial?.site_name ?? STORES[0];
-  const [productId, setProductId] = useState(initial?.catalog_id ?? "");
+  const [productId, setProductId] = useState(initial?.catalog_id ?? presetProductId ?? "");
   const [productQ, setProductQ] = useState("");
   const [newProduct, setNewProduct] = useState(false);
   const [np, setNp] = useState({ name: "", image: "", category: "SMARTPHONES" });
