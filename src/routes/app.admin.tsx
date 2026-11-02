@@ -248,7 +248,7 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
   return (
     <button
       onClick={onClick}
-      className={`min-h-10 rounded-full px-4 text-sm font-medium ${on ? "bg-primary text-primary-foreground" : "glass"}`}
+      className={`min-h-10 shrink-0 whitespace-nowrap rounded-full px-4 text-sm font-medium ${on ? "bg-primary text-primary-foreground" : "glass"}`}
     >
       {children}
     </button>
