@@ -1,4 +1,5 @@
 import { Link, useRouter } from "@tanstack/react-router";
+import { BrandLogo } from "@/components/brand-logo";
 import { useServerFn } from "@tanstack/react-start";
 import { LogOut, Sparkles, Settings, Bell, LayoutGrid, Heart, Globe, Check, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
