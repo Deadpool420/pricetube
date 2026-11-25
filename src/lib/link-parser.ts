@@ -123,6 +123,34 @@ export function parseProductHtml(url: string, html: string): ParsedLink {
   };
 }
 
+/** Collects same-store product links from a retailer category page. */
+export function extractProductUrlsFromHtml(sourceUrl: string, html: string, limit = 25): string[] {
+  let source: URL;
+  try {
+    source = new URL(sourceUrl);
+  } catch {
+    return [];
+  }
+
+  const found = new Set<string>();
+  const links = html.matchAll(/\bhref\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi);
+  for (const match of links) {
+    const href = decode(match[1] ?? match[2] ?? match[3] ?? "");
+    if (!href || /^(?:#|javascript:|mailto:|tel:)/i.test(href)) continue;
+    try {
+      const target = new URL(href, sourceUrl);
+      target.hash = "";
+      if (target.hostname.toLowerCase() !== source.hostname.toLowerCase()) continue;
+      if (!isSafePublicUrl(target.toString()) || isListingUrl(target.toString())) continue;
+      found.add(target.toString());
+      if (found.size >= limit) break;
+    } catch {
+      continue;
+    }
+  }
+  return Array.from(found);
+}
+
 /** Blocks localhost, private, link-local and non-http(s) URLs. */
 export function isSafePublicUrl(raw: string): boolean {
   let u: URL;

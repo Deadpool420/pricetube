@@ -1,17 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { buildAliases } from "./search-key";
+import { buildAliases, normalizeProductKey } from "./search-key";
 
-const KEY_NOISE = new Set(["bangladesh", "bd", "price", "buy", "online", "taka", "review", "latest", "new"]);
-/** Lowercase, no punctuation, noise words removed. */
+/** Canonical base-model key; memory, colour, and retail wording are excluded. */
 export function generateSearchKey(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .split(/\s+/)
-    .filter((w) => w && !KEY_NOISE.has(w))
-    .join(" ");
+  return normalizeProductKey(name);
 }
 
 type Ctx = { supabase: any; userId: string };
@@ -104,6 +98,7 @@ export const saveCatalogEntry = createServerFn({ method: "POST" })
         searchKey: z.string().trim().max(200).optional(),
         displayName: z.string().trim().min(2).max(200),
         category: z.string().trim().min(2).max(50),
+        aliases: z.array(z.string().trim().min(2).max(100)).max(20).optional(),
         imageUrl: z.union([urlSchema, z.literal("")]).optional(),
         isActive: z.boolean(),
       })
@@ -114,12 +109,16 @@ export const saveCatalogEntry = createServerFn({ method: "POST" })
     const payload = {
       search_key:
         data.id && data.searchKey
-          ? data.searchKey.toLowerCase().replace(/\s+/g, " ").trim()
+          ? generateSearchKey(data.searchKey)
           : generateSearchKey(data.displayName),
       display_name: data.displayName,
       category: data.category.toUpperCase(),
       image_url: data.imageUrl || null,
       is_active: data.isActive,
+      aliases: buildAliases(
+        data.id && data.searchKey ? data.searchKey : data.displayName,
+        data.aliases ?? [],
+      ),
     };
     if (data.id) {
       const { error } = await context.supabase
@@ -129,10 +128,27 @@ export const saveCatalogEntry = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
+    const { data: exactMatch, error: exactError } = await context.supabase
+      .from("product_catalog")
+      .select("id")
+      .eq("search_key", payload.search_key)
+      .maybeSingle();
+    if (exactError) throw new Error(exactError.message);
+    if (exactMatch) return { id: exactMatch.id as string };
+
+    const { data: aliasMatch, error: aliasError } = await context.supabase
+      .from("product_catalog")
+      .select("id")
+      .contains("aliases", [payload.search_key])
+      .limit(1)
+      .maybeSingle();
+    if (aliasError) throw new Error(aliasError.message);
+    if (aliasMatch) return { id: aliasMatch.id as string };
+
     // Entries created by hand in admin are curated, so they start verified.
     const { data: inserted, error } = await context.supabase
       .from("product_catalog")
-      .insert({ ...payload, aliases: buildAliases(payload.search_key), verification_status: "verified" })
+      .insert({ ...payload, verification_status: "verified" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
@@ -263,7 +279,7 @@ export const listAdminData = createServerFn({ method: "POST" })
     const [p, s] = await Promise.all([
       context.supabase
         .from("product_catalog")
-        .select("id, search_key, display_name, category, image_url, is_active, verification_status, last_refreshed_at")
+        .select("id, search_key, display_name, category, image_url, is_active, aliases, verification_status, last_refreshed_at")
         .order("display_name")
         .limit(1000),
       context.supabase
@@ -292,30 +308,53 @@ export const setSourceVerified = createServerFn({ method: "POST" })
 
 export const fetchProductLinks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ urls: z.array(z.string().trim().max(2000)).min(1).max(10) }).parse(input))
+  .inputValidator((input) =>
+    z.object({
+      urls: z.array(z.string().trim().max(2000)).min(1).max(25),
+      mode: z.enum(["links", "category"]).default("links"),
+    }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     await assertAdmin(context as Ctx);
-    const { parseProductHtml, isSafePublicUrl } = await import("./link-parser");
+    const { parseProductHtml, isSafePublicUrl, extractProductUrlsFromHtml } = await import("./link-parser");
     const UA =
       "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36";
-    const results = await Promise.all(
-      data.urls.map(async (url) => {
-        const fail = (error: string) => ({ url, ok: false as const, error });
-        if (!isSafePublicUrl(url)) return fail("Only public http/https links are allowed");
-        try {
-          const res = await fetch(url, {
-            headers: { "User-Agent": UA, Accept: "text/html,application/xhtml+xml", "Accept-Language": "en-US,en;q=0.9" },
-            redirect: "manual",
-            signal: AbortSignal.timeout(10000),
-          });
-          if (res.status >= 300 && res.status < 400) return fail("Page redirects elsewhere — paste the final link");
-          if (!res.ok) return fail(`Store returned ${res.status}`);
-          const html = (await res.text()).slice(0, 2_000_000);
-          return parseProductHtml(url, html);
-        } catch (e) {
-          return fail(e instanceof Error && e.name === "TimeoutError" ? "Timed out after 10s" : "Could not open page");
-        }
-      }),
-    );
+    const fetchHtml = async (url: string) => {
+      if (!isSafePublicUrl(url)) return { error: "Only public http/https links are allowed" } as const;
+      try {
+        const res = await fetch(url, {
+          headers: { "User-Agent": UA, Accept: "text/html,application/xhtml+xml", "Accept-Language": "en-US,en;q=0.9" },
+          redirect: "manual",
+          signal: AbortSignal.timeout(10000),
+        });
+        if (res.status >= 300 && res.status < 400) return { error: "Page redirects elsewhere — paste the final link" } as const;
+        if (!res.ok) return { error: `Store returned ${res.status}` } as const;
+        return { html: (await res.text()).slice(0, 2_000_000) } as const;
+      } catch (e) {
+        return { error: e instanceof Error && e.name === "TimeoutError" ? "Timed out after 10s" : "Could not open page" } as const;
+      }
+    };
+    const fetchOne = async (url: string) => {
+      const page = await fetchHtml(url);
+      return page.error ? { url, ok: false as const, error: page.error } : parseProductHtml(url, page.html);
+    };
+
+    let urls = data.urls;
+    if (data.mode === "category") {
+      if (data.urls.length !== 1) throw new Error("Enter one retailer category URL at a time");
+      const sourceUrl = data.urls[0];
+      if (!sourceUrl) return { results: [{ url: "", ok: false as const, error: "Enter a category URL" }] };
+      if (!isSafePublicUrl(sourceUrl)) {
+        return { results: [{ url: sourceUrl, ok: false as const, error: "Only public http/https links are allowed" }] };
+      }
+      const page = await fetchHtml(sourceUrl);
+      if (page.error) return { results: [{ url: sourceUrl, ok: false as const, error: page.error }] };
+      urls = extractProductUrlsFromHtml(sourceUrl, page.html, 25);
+      if (urls.length === 0) {
+        return { results: [{ url: sourceUrl, ok: false as const, error: "No same-store product links found on this page" }] };
+      }
+    }
+
+    const results = await Promise.all(urls.map(fetchOne));
     return { results };
   });

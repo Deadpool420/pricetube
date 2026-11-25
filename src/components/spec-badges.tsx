@@ -5,11 +5,11 @@ export function parseSpecs(...texts: (string | null | undefined)[]): Specs {
   const t = texts.filter(Boolean).join(" ");
   const official = /\bunofficial\b/i.test(t) ? "Unofficial" : /\bofficial\b/i.test(t) ? "Official" : null;
   let memory: string | null = null;
-  const pair = t.match(/\b(\d{1,2})\s*(?:gb)?\s*[/+|-]\s*(\d{2,4}|1)\s*(gb|tb)\b/i);
+  const pair = t.match(/\b(\d{1,2})\s*(?:gb\s*)?(?:\/|\+)\s*(\d{2,4}|1)\s*(gb|tb)\b/i);
   if (pair) memory = `${pair[1]}/${pair[2]}${pair[3].toUpperCase() === "TB" ? " TB" : " GB"}`;
   else {
     const ram = t.match(/\b(\d{1,2})\s*gb\s*ram\b/i);
-    const rom = t.match(/\b(64|128|256|512|1)\s*(gb|tb)\b(?!\s*ram)/i);
+    const rom = t.match(/\b(32|64|128|256|512|1024|1)\s*(gb|tb)\b(?!\s*ram)/i);
     if (ram && rom) memory = `${ram[1]}/${rom[1]} ${rom[2].toUpperCase()}`;
     else if (rom) memory = `${rom[1]} ${rom[2].toUpperCase()}`;
   }

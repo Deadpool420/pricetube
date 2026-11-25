@@ -1,0 +1,1 @@
+- Keep retailer importing and Firecrawl behind authenticated admin-only server functions; Firecrawl must require an explicit confirmation because it uses credits.

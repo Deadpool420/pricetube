@@ -128,3 +128,70 @@ export const scrapeProductFromUrl = createServerFn({ method: "POST" })
       };
     }
   });
+
+/** Optional product discovery for admins; this makes one confirmed Firecrawl search request. */
+export const searchRetailerLinksWithFirecrawl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ query: z.string().trim().min(2).max(120), confirmed: z.literal(true) }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (isAdmin !== true) return { ok: false as const, message: "Admins only" };
+
+    const apiKey = process.env['FIRECRAWL_API_KEY'];
+    if (!apiKey) return { ok: false as const, message: "Firecrawl is not configured" };
+
+    const response = await fetch("https://api.firecrawl.dev/v2/search", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: `${data.query} price Bangladesh Star Tech Ryans MobileDokan Pickaboo Dazzle Gadget and Gear`,
+        limit: 10,
+        country: "BD",
+        lang: "en",
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) {
+      console.error(`Firecrawl search failed [${response.status}]`);
+      return { ok: false as const, message: `Firecrawl search failed (${response.status})` };
+    }
+
+    const payload = (await response.json()) as {
+      success?: boolean;
+      data?: { web?: Array<{ url?: string }> };
+    };
+    const { isSafePublicUrl, isListingUrl, parseProductHtml } = await import("./link-parser");
+    const { storeHost } = await import("./store-names");
+    const trustedDomains = [
+      "startech.com.bd", "gadgetandgear.com", "mobiledokan.com", "mobiledokan.co", "dazzle.com.bd",
+      "pickaboo.com", "ryans.com", "smsgadget.com", "applegadgetsbd.com", "sumashtech.com",
+      "daraz.com.bd", "techlandbd.com", "bdstall.com", "tahamtech.com.bd", "techdokan.com.bd",
+      "shajgoj.com", "chardike.com", "arogga.com",
+    ];
+    const urls = Array.from(new Set((payload.data?.web ?? []).flatMap((item) => {
+      const url = item.url;
+      if (!url || !isSafePublicUrl(url) || isListingUrl(url)) return [];
+      const host = storeHost(url);
+      return trustedDomains.some((domain) => host === domain || host.endsWith(`.${domain}`)) ? [url] : [];
+    }))).slice(0, 6);
+    const userAgent = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/126.0 Mobile Safari/537.36";
+    const results = await Promise.all(urls.map(async (url) => {
+      try {
+        const page = await fetch(url, {
+          headers: { "User-Agent": userAgent, Accept: "text/html,application/xhtml+xml" },
+          redirect: "manual",
+          signal: AbortSignal.timeout(10000),
+        });
+        if (page.status >= 300 && page.status < 400) return { url, ok: false as const, error: "Page redirects elsewhere" };
+        if (!page.ok) return { url, ok: false as const, error: `Store returned ${page.status}` };
+        return parseProductHtml(url, (await page.text()).slice(0, 2_000_000));
+      } catch {
+        return { url, ok: false as const, error: "Could not open retailer page" };
+      }
+    }));
+    if (payload.success !== true) return { ok: false as const, message: "Firecrawl found no search results" };
+    return { ok: true as const, results };
+  });
