@@ -15,7 +15,7 @@ import {
   generateSearchKey,
   fetchProductLinks,
 } from "@/lib/admin-catalog.functions";
-import { scrapeProductFromUrl } from "@/lib/price-scraping.functions";
+import { scrapeProductFromUrl, searchRetailerLinksWithFirecrawl } from "@/lib/price-scraping.functions";
 import { SafeImage } from "@/components/safe-image";
 import { SpecBadges } from "@/components/spec-badges";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,7 @@ type Product = {
   category: string;
   image_url: string | null;
   is_active: boolean;
+  aliases: string[];
   verification_status: string;
 };
 type Listing = {
@@ -774,6 +775,7 @@ function ProductSheet({ p, onClose, onSaved }: { p: Product; onClose: () => void
   const [name, setName] = useState(p.display_name);
   const [category, setCategory] = useState(p.category);
   const [image, setImage] = useState(p.image_url ?? "");
+  const [aliasText, setAliasText] = useState((p.aliases ?? []).join(", "));
   const [active, setActive] = useState(p.is_active);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -782,7 +784,17 @@ function ProductSheet({ p, onClose, onSaved }: { p: Product; onClose: () => void
   const save = async () => {
     setSaving(true);
     try {
-      await saveFn({ data: { id: p.id, searchKey: p.search_key, displayName: name.trim(), category, imageUrl: image.trim(), isActive: active } });
+      await saveFn({
+        data: {
+          id: p.id,
+          searchKey: p.search_key,
+          displayName: name.trim(),
+          category,
+          aliases: aliasText.split(",").map((alias) => alias.trim()).filter(Boolean),
+          imageUrl: image.trim(),
+          isActive: active,
+        },
+      });
       toast.success("Saved");
       onSaved();
       onClose();
@@ -819,6 +831,9 @@ function ProductSheet({ p, onClose, onSaved }: { p: Product; onClose: () => void
         <Input className="h-12 text-base" value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
       <p className="break-words text-xs text-muted-foreground">Search key: {p.search_key}</p>
+      <Field label="Alternate product names (comma separated)">
+        <Textarea className="min-h-20 text-base" value={aliasText} onChange={(e) => setAliasText(e.target.value)} placeholder="e.g. Nothing Phone 2a 5G, Phone 2a" />
+      </Field>
       <Field label="Category">
         <Input className="h-12 text-base" value={category} onChange={(e) => setCategory(e.target.value.toUpperCase())} />
       </Field>
@@ -863,27 +878,79 @@ type LinkDraft = {
 
 function suggestProduct(products: Product[], title: string): string {
   const key = generateSearchKey(title);
-  const exact = products.find((p) => p.search_key === key);
+  if (!key) return "";
+  const exact = products.find((p) =>
+    [p.search_key, p.display_name, ...(p.aliases ?? [])].some((candidate) => generateSearchKey(candidate) === key),
+  );
   if (exact) return exact.id;
-  const tw = new Set(key.split(" "));
-  let best = "";
-  let bestScore = 0;
-  for (const p of products) {
-    const pw = p.search_key.split(" ").filter(Boolean);
-    if (pw.length === 0 || !pw.every((w) => tw.has(w))) continue;
-    if (pw.length > bestScore) {
-      bestScore = pw.length;
-      best = p.id;
-    }
+  return "";
+}
+
+type LinkResult = {
+  url: string;
+  ok: boolean;
+  error?: string;
+  title?: string;
+  price?: number | null;
+  imageUrl?: string;
+  inStock?: boolean;
+  store?: string;
+  variants?: string[];
+  official?: "Official" | "Unofficial" | null;
+  looksListing?: boolean;
+  expectedPrice?: boolean;
+};
+
+function toLinkDraft(result: LinkResult, products: Product[]): LinkDraft {
+  if (!result.ok) {
+    return {
+      url: result.url,
+      error: result.error ?? "Could not read this page",
+      warning: null,
+      productId: "",
+      name: "",
+      category: "SMARTPHONES",
+      store: "",
+      price: "",
+      image: "",
+      title: "",
+      description: "",
+      inStock: true,
+    };
   }
-  return best;
+  const warning = result.looksListing
+    ? "Looks like a category or search page"
+    : result.expectedPrice
+      ? "Price is labelled expected/upcoming"
+      : !result.price
+        ? "No price found"
+        : null;
+  const description = [result.official, (result.variants ?? []).join(", ")].filter(Boolean).join(" · ");
+  const title = result.title ?? "";
+  return {
+    url: result.url,
+    warning,
+    productId: suggestProduct(products, title),
+    name: title,
+    category: "SMARTPHONES",
+    store: result.store ?? "",
+    price: warning || !result.price ? "" : String(result.price),
+    image: result.imageUrl ?? "",
+    title,
+    description,
+    inStock: result.inStock !== false,
+  };
 }
 
 function LinkSheet({ products, listings, onClose, onSaved }: { products: Product[]; listings: Listing[]; onClose: () => void; onSaved: () => void }) {
   const fetchFn = useServerFn(fetchProductLinks);
+  const firecrawlSearchFn = useServerFn(searchRetailerLinksWithFirecrawl);
   const saveProductFn = useServerFn(saveCatalogEntry);
   const saveFn = useServerFn(saveCatalogSource);
   const [text, setText] = useState("");
+  const [mode, setMode] = useState<"links" | "category">("links");
+  const [firecrawlQuery, setFirecrawlQuery] = useState("");
+  const [confirmFirecrawl, setConfirmFirecrawl] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [drafts, setDrafts] = useState<LinkDraft[]>([]);
   const [busy, setBusy] = useState(false);
@@ -926,41 +993,36 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
   const urls = text.split(/\s+/).map((s) => s.trim()).filter(Boolean);
 
   const runFetch = async () => {
-    if (urls.length === 0) return toast.error("Paste at least one link");
-    if (urls.length > 10) return toast.error("Up to 10 links per run");
+    const requestedUrls = mode === "category" ? urls.slice(0, 1) : urls;
+    if (requestedUrls.length === 0) return toast.error(mode === "category" ? "Paste a category page link" : "Paste at least one link");
+    if (mode === "category" && urls.length !== 1) return toast.error("Paste one category page link");
+    if (mode === "links" && requestedUrls.length > 25) return toast.error("Up to 25 product links per run");
     setFetching(true);
     try {
-      const { results } = await fetchFn({ data: { urls } });
-      setDrafts(
-        results.map((r: any): LinkDraft => {
-          if (!r.ok) {
-            return { url: r.url, error: r.error, warning: null, productId: "", name: "", category: "SMARTPHONES", store: "", price: "", image: "", title: "", description: "", inStock: true };
-          }
-          const warning = r.looksListing
-            ? "Looks like a category or search page"
-            : r.expectedPrice
-              ? "Price is labelled expected/upcoming"
-              : !r.price
-                ? "No price found"
-                : null;
-          const desc = [r.official, (r.variants as string[]).join(", ")].filter(Boolean).join(" · ");
-          return {
-            url: r.url,
-            warning,
-            productId: suggestProduct(products, r.title),
-            name: r.title,
-            category: "SMARTPHONES",
-            store: r.store,
-            price: warning || !r.price ? "" : String(r.price),
-            image: r.imageUrl,
-            title: r.title,
-            description: desc,
-            inStock: r.inStock,
-          };
-        }),
-      );
+      const { results } = await fetchFn({ data: { urls: requestedUrls, mode } });
+      setDrafts(results.map((result) => toLinkDraft(result as LinkResult, products)));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Fetch failed");
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  const runFirecrawlSearch = async () => {
+    setConfirmFirecrawl(false);
+    if (firecrawlQuery.trim().length < 2) return toast.error("Enter a product name first");
+    setFetching(true);
+    try {
+      const result = await firecrawlSearchFn({ data: { query: firecrawlQuery.trim(), confirmed: true } });
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      setDrafts(result.results.map((item) => toLinkDraft(item as LinkResult, products)));
+      if (result.results.length === 0) toast.error("No trusted retailer pages found");
+      else toast.success(`${result.results.length} retailer pages ready to review`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Firecrawl search failed");
     } finally {
       setFetching(false);
     }
@@ -973,10 +1035,9 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
     try {
       let catalogId = d.productId;
       if (!catalogId) {
-        const key = generateSearchKey(d.name);
-        const existing = products.find((p) => p.search_key === key);
-        catalogId = existing
-          ? existing.id
+        const existingId = suggestProduct(products, d.name);
+        catalogId = existingId
+          ? existingId
           : (await saveProductFn({ data: { displayName: d.name.trim(), category: d.category || "SMARTPHONES", imageUrl: d.image, isActive: true } })).id;
       }
       const dup = listings.find((l) => l.catalog_id === catalogId && l.url === d.url);
@@ -996,10 +1057,12 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
         },
       });
       update(i, { status: { kind: dup ? "updated" : "added" }, productId: catalogId });
+      toast.success(dup ? "Price updated" : "Listing added");
       const next = drafts.findIndex((x, j) => j > i && !x.status && !x.error);
       if (next >= 0) setTimeout(() => document.getElementById(`draft-${next}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
     } catch (e) {
       update(i, { status: { kind: "skipped", reason: e instanceof Error ? e.message : "Could not save" } });
+      toast.error(e instanceof Error ? e.message : "Could not save listing");
     }
   };
 
@@ -1027,7 +1090,7 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
       footer={
         drafts.length === 0 ? (
           <button onClick={runFetch} disabled={fetching} className={`${primaryBtn} flex w-full items-center justify-center gap-2`}>
-            {fetching ? <Loader2 className="h-5 w-5 animate-spin" /> : <LinkIcon className="h-5 w-5" />} Fetch
+            {fetching ? <Loader2 className="h-5 w-5 animate-spin" /> : <LinkIcon className="h-5 w-5" />} {mode === "category" ? "Find products" : "Fetch"}
           </button>
         ) : (
           <div className="flex gap-2">
@@ -1040,15 +1103,51 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
       }
     >
       {drafts.length === 0 ? (
-        <Field label="Product links (one per line, max 10)">
-          <button type="button" onClick={pasteClip} className={`${ghostBtn} mb-2 flex w-full items-center justify-center gap-2`}>
-            <ClipboardPaste className="h-5 w-5" /> Paste from clipboard
-          </button>
-          <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} inputMode="url" placeholder="https://www.startech.com.bd/..." className="min-h-48 text-base" />
-          {text && (
-            <button type="button" onClick={() => setText("")} className="mt-2 text-xs font-medium text-muted-foreground">Clear</button>
-          )}
-        </Field>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-2">
+            <Chip on={mode === "links"} onClick={() => setMode("links")}>Product links</Chip>
+            <Chip on={mode === "category"} onClick={() => setMode("category")}>Category page</Chip>
+          </div>
+          <Field label={mode === "category" ? "Retailer category page URL" : "Product links (one per line, max 25)"}>
+            <button type="button" onClick={pasteClip} className={`${ghostBtn} mb-2 flex w-full items-center justify-center gap-2`}>
+              <ClipboardPaste className="h-5 w-5" /> Paste from clipboard
+            </button>
+            {mode === "category" ? (
+              <Input value={text} onChange={(e) => setText(e.target.value)} inputMode="url" placeholder="https://www.startech.com.bd/smart-phone" className="h-12 text-base" />
+            ) : (
+              <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} inputMode="url" placeholder="https://www.startech.com.bd/..." className="min-h-48 text-base" />
+            )}
+            {text && (
+              <button type="button" onClick={() => setText("")} className="mt-2 text-xs font-medium text-muted-foreground">Clear</button>
+            )}
+          </Field>
+
+          <div className="glass space-y-2 rounded-2xl p-3">
+            <Field label="Search a product name">
+              <Input value={firecrawlQuery} onChange={(e) => setFirecrawlQuery(e.target.value)} className="h-12 text-base" placeholder="e.g. CMF Phone 2 Pro" />
+            </Field>
+            <button
+              type="button"
+              disabled={fetching || firecrawlQuery.trim().length < 2}
+              onClick={() => setConfirmFirecrawl(true)}
+              className={`${ghostBtn} flex w-full items-center justify-center gap-2`}
+            >
+              <Wand2 className="h-4 w-4" /> Find with Firecrawl · uses credits
+            </button>
+          </div>
+          <AlertDialog open={confirmFirecrawl} onOpenChange={setConfirmFirecrawl}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Use Firecrawl credits?</AlertDialogTitle>
+                <AlertDialogDescription>This search uses Firecrawl credits and only prepares retailer pages for your review.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="min-h-12">Cancel</AlertDialogCancel>
+                <AlertDialogAction className="min-h-12" onClick={runFirecrawlSearch}>Use credits and search</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       ) : (
         <>
           {done.length > 0 && (
@@ -1069,21 +1168,32 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
           )}
           {drafts.map((d, i) => (
             <div key={d.url + i} id={`draft-${i}`} className={`glass space-y-3 rounded-2xl p-3 ${d.status ? "opacity-60" : ""}`}>
-              <p className="break-all text-xs text-muted-foreground">{d.url}</p>
-              {(() => {
-                const ex = listings.find((l) => l.url.trim() === d.url.trim());
-                return ex ? (
-                  <p className="rounded-xl bg-primary/10 p-2 text-xs font-medium text-primary">
-                    Already in catalog at {fmtPrice(ex.price)}
-                    {Number(d.price) > 0 ? ` — saving updates it to ${fmtPrice(Number(d.price))}` : ""}
-                  </p>
-                ) : null;
-              })()}
-              {!d.error && <SpecBadges title={d.title} description={d.description} inStock={d.inStock} />}
-              {d.error ? (
-                <p className="flex items-center gap-2 text-sm text-destructive"><AlertTriangle className="h-4 w-4 shrink-0" /> {d.error}</p>
+              {d.status ? (
+                <div className="flex min-w-0 items-start gap-2 text-sm">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <div className="min-w-0">
+                    <p className="font-semibold">{d.status.kind}{d.status.reason ? ` — ${d.status.reason}` : ""}</p>
+                    <p className="truncate text-xs text-muted-foreground">{d.name || d.title || d.store}</p>
+                    <p className="break-all text-xs text-muted-foreground">{d.url}</p>
+                  </div>
+                </div>
               ) : (
                 <>
+                  <p className="break-all text-xs text-muted-foreground">{d.url}</p>
+                  {(() => {
+                    const ex = listings.find((l) => l.url.trim() === d.url.trim());
+                    return ex ? (
+                      <p className="rounded-xl bg-primary/10 p-2 text-xs font-medium text-primary">
+                        Already in catalog at {fmtPrice(ex.price)}
+                        {Number(d.price) > 0 ? ` — saving updates it to ${fmtPrice(Number(d.price))}` : ""}
+                      </p>
+                    ) : null;
+                  })()}
+                  {!d.error && <SpecBadges title={d.title} description={d.description} inStock={d.inStock} />}
+                  {d.error ? (
+                    <p className="flex items-center gap-2 text-sm text-destructive"><AlertTriangle className="h-4 w-4 shrink-0" /> {d.error}</p>
+                  ) : (
+                    <>
                   {d.warning && (
                     <p className="flex items-center gap-2 rounded-xl bg-destructive/10 p-2 text-sm text-destructive">
                       <AlertTriangle className="h-4 w-4 shrink-0" /> {d.warning} — type the price by hand to save.
@@ -1126,21 +1236,19 @@ function LinkSheet({ products, listings, onClose, onSaved }: { products: Product
                     <span className="text-sm font-medium">In stock</span>
                     <Switch checked={d.inStock} onCheckedChange={(v) => update(i, { inStock: v })} />
                   </div>
-                  {d.status ? (
-                    <p className="text-sm font-semibold">{d.status.kind}{d.status.reason ? ` — ${d.status.reason}` : ""}</p>
-                  ) : (
-                    <button
-                      disabled={!canSave(d) || busy}
-                      onClick={async () => {
-                        setBusy(true);
-                        await saveOne(i, d);
-                        setBusy(false);
-                        onSaved();
-                      }}
-                      className={`${primaryBtn} w-full`}
-                    >
-                      Save
-                    </button>
+                      <button
+                        disabled={!canSave(d) || busy}
+                        onClick={async () => {
+                          setBusy(true);
+                          await saveOne(i, d);
+                          setBusy(false);
+                          onSaved();
+                        }}
+                        className={`${primaryBtn} w-full`}
+                      >
+                        {busy ? "Saving…" : "Save"}
+                      </button>
+                    </>
                   )}
                 </>
               )}

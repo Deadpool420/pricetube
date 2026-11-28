@@ -14,7 +14,7 @@ const LISTING_SEGMENTS = [
 ];
 
 const BARE_PATH_WORDS = new Set([
-  "smartphone", "smartphones", "mobile", "mobiles", "mobile-phone", "mobile-phones",
+  "smartphone", "smartphones", "smart-phone", "smart-phones", "mobile", "mobiles", "mobile-phone", "mobile-phones",
   "phone", "phones", "samsung", "nothing", "xiaomi", "apple", "iphone", "realme",
   "oppo", "vivo", "oneplus", "redmi", "poco", "infinix", "tecno", "motorola",
   "honor", "huawei", "google", "cmf", "laptop", "laptops", "tablet", "tablets",

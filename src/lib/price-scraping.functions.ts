@@ -163,7 +163,8 @@ export const searchRetailerLinksWithFirecrawl = createServerFn({ method: "POST" 
       success?: boolean;
       data?: { web?: Array<{ url?: string }> };
     };
-    const { isSafePublicUrl, isListingUrl, parseProductHtml } = await import("./link-parser");
+    const { isSafePublicUrl, parseProductHtml } = await import("./link-parser");
+    const { isListingUrl } = await import("./offer-filters");
     const { storeHost } = await import("./store-names");
     const trustedDomains = [
       "startech.com.bd", "gadgetandgear.com", "mobiledokan.com", "mobiledokan.co", "dazzle.com.bd",
